@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <title>Venezuela Ayuda - Terremotos 2026</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -880,7 +881,7 @@
       <div id="authError" class="error"></div>
       <input type="email" id="authEmail" placeholder="Correo electrónico" />
       <input type="password" id="authPassword" placeholder="Contraseña (mín. 6 caracteres)" />
-      <div id="turnstileWidget" class="cf-turnstile" data-sitekey="0x4AAAAAADr9f8FslVdDLFjX" data-callback="onTurnstileToken" data-expired-callback="onTurnstileExpired" style="margin:.5rem 0;"></div>
+      <div id="turnstileWidget" style="margin:.5rem 0;"></div>
       <button class="btn-primary" id="authBoton">Entrar</button>
       <div class="toggle"><a id="authToggle">¿No tienes cuenta? Regístrate</a></div>
       <div class="toggle" style="margin-top:.3rem;">
@@ -1087,6 +1088,16 @@ async function actualizarUI() {
     document.getElementById('navModerar').style.display = 'none';
     esModerador = false;
     miRol = '';
+    if (typeof turnstile !== 'undefined') {
+      const el = document.getElementById('turnstileWidget');
+      if (el && !el.querySelector('iframe')) {
+        turnstile.render('#turnstileWidget', {
+          sitekey: '0x4AAAAAADr9f8FslVdDLFjX',
+          callback: onTurnstileToken,
+          'expired-callback': onTurnstileExpired
+        });
+      }
+    }
   }
   revisarAuthReg();
   revisarAuthMis();
@@ -1099,11 +1110,13 @@ function revisarAuthReg() {
   if (usuario && typeof turnstile !== 'undefined') {
     const el = document.getElementById('turnstileRegWidget');
     if (el && !el.querySelector('iframe')) {
-      turnstile.render('#turnstileRegWidget', {
-        sitekey: '0x4AAAAAADr9f8FslVdDLFjX',
-        callback: (token) => { regCaptchaToken = token; },
-        'expired-callback': () => { regCaptchaToken = null; }
-      });
+      try {
+        turnstile.render('#turnstileRegWidget', {
+          sitekey: '0x4AAAAAADr9f8FslVdDLFjX',
+          callback: (token) => { regCaptchaToken = token; },
+          'expired-callback': () => { regCaptchaToken = null; }
+        });
+      } catch (_) {}
     }
   }
 }
