@@ -1392,33 +1392,6 @@ function cerrarModalEditar() {
   modCentroEditando = null;
 }
 
-document.getElementById('formEditarCentro').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  if (!modCentroEditando) return;
-  try {
-    const { error } = await supabase.from('centers').update({
-      name: document.getElementById('e_nombre').value.trim(),
-      type: document.getElementById('e_tipo').value,
-      description: document.getElementById('e_descripcion').value.trim(),
-      address: document.getElementById('e_direccion').value.trim(),
-      city: document.getElementById('e_ciudad').value.trim(),
-      state: document.getElementById('e_estado').value,
-      phone: document.getElementById('e_telefono').value.trim(),
-      items_needed: document.getElementById('e_items').value.trim(),
-      schedule: document.getElementById('e_horarios').value.trim(),
-      instagram: document.getElementById('e_instagram').value.trim(),
-      lat: parseFloat(document.getElementById('e_lat').value),
-      lng: parseFloat(document.getElementById('e_lng').value),
-    }).eq('id', modCentroEditando);
-    if (error) throw error;
-    await supabase.from('moderation_log').insert({
-      moderator_email: usuario?.email, center_id: modCentroEditando, action: 'edited'
-    }).maybeSingle();
-    cerrarModalEditar();
-    cargarPendientes(); cargarCentros();
-  } catch (e) { alert('Error al guardar: ' + e.message); }
-});
-
 async function modEliminar(id) {
   if (!confirm('¿Eliminar este centro definitivamente? No se puede deshacer.')) return;
   try {
@@ -1793,9 +1766,36 @@ async function cargarVTB() {
             <div class="feed-actions">
               <a class="feed-whatsapp" href="${waLink}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Compartir</a>
   </div>
-</div>
+</div>`);
+    }).join('');
 
-<!-- ===== MODERAR ===== -->
+    if (isAppend) {
+      container.insertAdjacentHTML('beforeend', feedHtml);
+      if (hayMas) {
+        const btn = container.querySelector('.btn-cargar-mas');
+        if (btn) btn.remove();
+        container.insertAdjacentHTML('beforeend', `<button class="btn-cargar-mas" onclick="cargarVTB()"><i class="fas fa-plus-circle"></i> Cargar más reportes</button>`);
+      } else {
+        const btn = container.querySelector('.btn-cargar-mas');
+        if (btn) btn.remove();
+      }
+    } else {
+      container.innerHTML = feedHtml + (hayMas
+        ? `<button class="btn-cargar-mas" onclick="cargarVTB()"><i class="fas fa-plus-circle"></i> Cargar más reportes</button>`
+        : '');
+    }
+  } catch (e) {
+    if (vtbPage <= 2) container.innerHTML = `
+      <div class="empty-state" style="border-color:#e8c9b6;background:#fcf3eb;color:#8a4a1c;">
+        <i class="fas fa-exclamation-triangle"></i>
+        No se pudieron cargar los reportes.
+        <br><span style="font-size:.82rem;"><a href="${VTB_PAGE}" target="_blank" rel="noopener" style="color:var(--red);">Visitá venezuelatebusca.com directamente</a>.</span>
+        <br><button onclick="resetVTB()" style="margin-top:.8rem;padding:.4rem 1.2rem;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;">Reintentar</button>
+      </div>`;
+  }
+}
+</script>
+
 <div class="page" id="pag-moderar">
   <div class="titulo-seccion"><i class="fas fa-check-double"></i> Panel de moderación</div>
 
@@ -1843,7 +1843,7 @@ async function cargarVTB() {
       <select id="nuevoModRol" style="flex:0 0 130px;padding:.45rem;">
         <option value="moderator">Moderador</option>
         <option value="manager">Manager</option>
-        ${miRol === 'owner' ? '<option value="admin">Admin</option>' : ''}
+        <option value="admin">Admin</option>
       </select>
       <button class="btn" style="background:var(--blue);white-space:nowrap;" onclick="agregarModerador()"><i class="fas fa-plus"></i> Agregar</button>
     </div>
@@ -1909,35 +1909,33 @@ async function cargarVTB() {
     </form>
   </div>
 </div>
-        </div>
-      </div>`;
-    }).join('');
-
-    if (isAppend) {
-      container.insertAdjacentHTML('beforeend', feedHtml);
-      if (hayMas) {
-        const btn = container.querySelector('.btn-cargar-mas');
-        if (btn) btn.remove();
-        container.insertAdjacentHTML('beforeend', `<button class="btn-cargar-mas" onclick="cargarVTB()"><i class="fas fa-plus-circle"></i> Cargar más reportes</button>`);
-      } else {
-        const btn = container.querySelector('.btn-cargar-mas');
-        if (btn) btn.remove();
-      }
-    } else {
-      container.innerHTML = feedHtml + (hayMas
-        ? `<button class="btn-cargar-mas" onclick="cargarVTB()"><i class="fas fa-plus-circle"></i> Cargar más reportes</button>`
-        : '');
-    }
-  } catch (e) {
-    if (vtbPage <= 2) container.innerHTML = `
-      <div class="empty-state" style="border-color:#e8c9b6;background:#fcf3eb;color:#8a4a1c;">
-        <i class="fas fa-exclamation-triangle"></i>
-        No se pudieron cargar los reportes.
-        <br><span style="font-size:.82rem;"><a href="${VTB_PAGE}" target="_blank" rel="noopener" style="color:var(--red);">Visitá venezuelatebusca.com directamente</a>.</span>
-        <br><button onclick="resetVTB()" style="margin-top:.8rem;padding:.4rem 1.2rem;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;">Reintentar</button>
-      </div>`;
-  }
-}
+<script>
+document.getElementById('formEditarCentro').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!modCentroEditando) return;
+  try {
+    const { error } = await supabase.from('centers').update({
+      name: document.getElementById('e_nombre').value.trim(),
+      type: document.getElementById('e_tipo').value,
+      description: document.getElementById('e_descripcion').value.trim(),
+      address: document.getElementById('e_direccion').value.trim(),
+      city: document.getElementById('e_ciudad').value.trim(),
+      state: document.getElementById('e_estado').value,
+      phone: document.getElementById('e_telefono').value.trim(),
+      items_needed: document.getElementById('e_items').value.trim(),
+      schedule: document.getElementById('e_horarios').value.trim(),
+      instagram: document.getElementById('e_instagram').value.trim(),
+      lat: parseFloat(document.getElementById('e_lat').value),
+      lng: parseFloat(document.getElementById('e_lng').value),
+    }).eq('id', modCentroEditando);
+    if (error) throw error;
+    await supabase.from('moderation_log').insert({
+      moderator_email: usuario?.email, center_id: modCentroEditando, action: 'edited'
+    }).maybeSingle();
+    cerrarModalEditar();
+    cargarPendientes(); cargarCentros();
+  } catch (e) { alert('Error al guardar: ' + e.message); }
+});
 
 // ============================================================
 // DESAPARECIDOS - API Localizados Venezuela
