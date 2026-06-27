@@ -1866,8 +1866,8 @@ async function cargarVTB() {
         json = await tryVTBProxies(url);
       else throw e;
     }
-    const rawCount = (json.persons || []).length;
-    const nuevos = (json.persons || []).filter(p => !vtbIds.has(p.id));
+    const rawCount = (json && json.persons ? json.persons : []).length;
+    const nuevos = json && json.persons ? json.persons.filter(p => !vtbIds.has(p.id)) : [];
     nuevos.forEach(p => vtbIds.add(p.id));
     vtbAllData = isAppend ? vtbAllData.concat(nuevos) : nuevos;
     vtbPage++;
@@ -1942,9 +1942,9 @@ async function cargarVTB() {
     if (vtbPage <= 2) container.innerHTML = `
       <div class="empty-state" style="border-color:#e8c9b6;background:#fcf3eb;color:#8a4a1c;">
         <i class="fas fa-exclamation-triangle"></i>
-        No se pudieron cargar los reportes.
-        <br><span style="font-size:.82rem;"><a href="${VTB_PAGE}" target="_blank" rel="noopener" style="color:var(--red);">Visitá venezuelatebusca.com directamente</a>.</span>
-        <br><button onclick="resetVTB()" style="margin-top:.8rem;padding:.4rem 1.2rem;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;">Reintentar</button>
+        No se pudieron cargar los reportes de Venezuela Te Busca.
+        <br><span style="font-size:.82rem;">Su API ya no está disponible públicamente. </span>
+        <br><span style="font-size:.82rem;"><a href="${VTB_PAGE}" target="_blank" rel="noopener" style="color:var(--red);">Visitá venezuelatebusca.com directamente</a> para consultar.</span>
       </div>`;
   }
 }
