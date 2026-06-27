@@ -747,8 +747,6 @@
   </p>
 
   <div class="stats" id="statsDesaparecidos">
-    <div class="stat-card"><i class="fas fa-users"></i><div class="num" id="dStatVTB">31.267</div><div class="label">Venezuela Te Busca</div></div>
-    <div class="stat-card"><i class="fas fa-users"></i><div class="num" id="dStatDTV">40.000+</div><div class="label">Desap. Terremoto Vzla</div></div>
     <div class="stat-card"><i class="fas fa-user-check"></i><div class="num" id="dStatLoc">—</div><div class="label">Localizados Venezuela</div></div>
     <div class="stat-card"><i class="fas fa-paw"></i><div class="num" id="dStatHuellaTop">—</div><div class="label">HuellaScan</div></div>
   </div>
@@ -806,25 +804,6 @@
       </div>
     </div>
 
-    <div class="titulo-seccion" style="margin-top:1.5rem;"><i class="fas fa-images"></i> Venezuela Te Busca — feed con fotos</div>
-    <p style="font-size:.82rem;color:#666;margin-bottom:.6rem;">
-      Personas reportadas como desaparecidas en <a href="https://www.venezuelatebusca.com/" target="_blank" rel="noopener" style="color:var(--red);">venezuelatebusca.com</a>. Datos en tiempo real desde su API pública.
-    </p>
-
-    <div class="feed-filters" id="vtbFilters">
-      <select id="vtbFilterStatus">
-        <option value="missing">Por localizar</option>
-        <option value="found">Localizados</option>
-        <option value="all">Todos</option>
-      </select>
-      <input type="text" id="vtbSearch" placeholder="Buscar por nombre..." style="flex:1;min-width:120px;" />
-      <button id="vtbSearchBtn" style="padding:.45rem 1rem;background:var(--blue);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;"><i class="fas fa-search"></i></button>
-      <span style="font-size:.82rem;color:#999;align-self:center;" id="vtbCount"></span>
-    </div>
-
-    <div id="vtbResults">
-      <div class="empty-state"><span class="loading-spinner"></span> Cargando reportes de Venezuela Te Busca...</div>
-    </div>
   </div>
 
   <!-- TAB MASCOTAS -->
@@ -1018,7 +997,6 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     if (p === 'registrar') revisarAuthReg();
     if (p === 'mis-centros') revisarAuthMis();
     if (p === 'moderar') { if (esModerador) { cargarPendientes(); cargarModeradores(); } else document.getElementById('moderarLista').innerHTML = '<div style="text-align:center;padding:2rem;color:#999;"><i class="fas fa-lock" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>No tenés permisos de moderación.</div>'; }
-    if (p === 'desaparecidos' && !window._vtbLoaded) setTimeout(cargarVTB, 100);
     if (p === 'sismos') renderSismos();
   });
 });
@@ -1803,153 +1781,6 @@ organizaciones.forEach(o => {
 });
 
 // ============================================================
-// DESAPARECIDOS - API Venezuela Te Busca
-// ============================================================
-const VTB_API = 'https://www.venezuelatebusca.com/api/persons';
-const VTB_PHOTO = 'https://venezuelatebusca.com/media/photos/';
-const VTB_PAGE = 'https://www.venezuelatebusca.com/';
-const CORS_PROXIES = [
-  '/api/proxy?url=',
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?',
-];
-// Cloudflare Worker (opcional, configurable en config.js)
-if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.proxyWorkerUrl) {
-  CORS_PROXIES.unshift(APP_CONFIG.proxyWorkerUrl + '?url=');
-}
-const VTB_LIMIT = 30;
-let vtbAllData = [];
-let vtbPage = 1;
-let vtbIds = new Set();
-
-document.getElementById('vtbFilterStatus').addEventListener('change', resetVTB);
-document.getElementById('vtbSearch').addEventListener('keydown', e => {
-  if (e.key === 'Enter') resetVTB();
-});
-document.getElementById('vtbSearchBtn').addEventListener('click', resetVTB);
-
-function resetVTB() {
-  vtbPage = 1; vtbAllData = []; vtbIds = new Set(); cargarVTB();
-}
-
-async function cargarVTB() {
-  const search = document.getElementById('vtbSearch').value.trim();
-  const status = document.getElementById('vtbFilterStatus').value;
-  const container = document.getElementById('vtbResults');
-  const isAppend = vtbPage > 1;
-
-  if (!isAppend) container.innerHTML = '<div class="empty-state"><span class="loading-spinner"></span> Cargando reportes...</div>';
-
-  let url = `${VTB_API}?limit=${VTB_LIMIT}&page=${vtbPage}`;
-  if (status !== 'all') url += `&status=${status}`;
-  if (search) url += `&search=${encodeURIComponent(search)}`;
-
-  async function fetchVTB(targetUrl) {
-    const r = await fetch(targetUrl, { headers: { 'Accept': 'application/json' } });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  }
-
-  async function tryVTBProxies(targetUrl) {
-    for (const proxy of CORS_PROXIES) {
-      try { return await fetchVTB(proxy + encodeURIComponent(targetUrl)); }
-      catch {}
-    }
-    throw new Error('Todos los proxies fallaron');
-  }
-
-  try {
-    let json;
-    try { json = await fetchVTB(url); }
-    catch (e) {
-      if (e.message === 'Failed to fetch' || e.name === 'TypeError')
-        json = await tryVTBProxies(url);
-      else throw e;
-    }
-    const rawCount = (json && json.persons ? json.persons : []).length;
-    const nuevos = json && json.persons ? json.persons.filter(p => !vtbIds.has(p.id)) : [];
-    nuevos.forEach(p => vtbIds.add(p.id));
-    vtbAllData = isAppend ? vtbAllData.concat(nuevos) : nuevos;
-    vtbPage++;
-    window._vtbLoaded = true;
-    const hayMas = rawCount >= VTB_LIMIT;
-
-    const total = vtbAllData.length;
-    document.getElementById('vtbCount').textContent = `${total} reportes`;
-
-    if (!total) {
-      container.innerHTML = '<div class="empty-state"><i class="fas fa-filter"></i> No hay reportes con ese filtro.</div>';
-      return;
-    }
-
-    const feedHtml = nuevos.map(p => {
-      const name = [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Sin nombre';
-      const isMissing = p.status === 'missing';
-      const badgeText = isMissing ? 'Por localizar' : 'Localizado';
-      const badgeClass = isMissing ? 'feed-badge-desconocido' : 'feed-badge-localizado';
-      const hasPhoto = p.photo_key && !p.photo_key.startsWith('placeholder');
-      const photoUrl = hasPhoto ? `${VTB_PHOTO}${p.photo_key}` : '';
-      const avatarColor = isMissing ? 'cf142b' : '27ae60';
-      const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${avatarColor}&color=fff&size=100&rounded=true&font-size=0.33&bold=true`;
-      const bits = [];
-      if (p.age) bits.push(`<span><strong>Edad:</strong> ${p.age} años</span>`);
-      if (p.gender) bits.push(`<span><strong>Sexo:</strong> ${p.gender === 'male' ? 'Masculino' : 'Femenino'}</span>`);
-      if (p.national_id) bits.push(`<span><strong>C.I.:</strong> ${escHtml(p.national_id)}</span>`);
-      const placeHtml = p.last_seen_location ? `<div class="feed-lugar"><i class="fas fa-map-marker-alt"></i> <strong>Última vez:</strong> ${escHtml(p.last_seen_location)}</div>` : '';
-      const descHtml = p.description ? `<div class="feed-obs">${escHtml(p.description)}</div>` : '';
-      const time = p.created_at ? tiempoRelativo(p.created_at) : '';
-      const reporter = p.reporter_name ? escHtml(p.reporter_name) : '';
-      const shareText = encodeURIComponent(`🔍 ${name} - Venezuela Te Busca`);
-      const waLink = `https://wa.me/?text=${shareText}%0A${VTB_PAGE}`;
-      const imgHtml = hasPhoto
-        ? `<img src="${photoUrl}" alt="${escHtml(name)}" loading="lazy" decoding="async" onerror="this.src='${avatarUrl}'" />`
-        : `<img src="${avatarUrl}" alt="${escHtml(name)}" loading="lazy" />`;
-      return `<div class="feed-item">
-        <div class="feed-avatar" style="flex:0 0 90px;width:90px;height:90px;">${imgHtml}</div>
-        <div class="feed-body">
-          <div class="feed-header">
-            <div class="feed-nombre">${escHtml(name)}</div>
-            <span class="feed-badge ${badgeClass}">${badgeText}</span>
-          </div>
-          <div class="feed-meta">${bits.join('')}</div>
-          ${placeHtml}${descHtml}
-          <div class="feed-footer">
-            <div class="feed-fuente">${reporter ? '<i class="fas fa-user"></i> ' + reporter : ''}${time ? ' · ' + time : ''}</div>
-            <div class="feed-actions">
-              <a class="feed-whatsapp" href="${waLink}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Compartir</a>
-            </div>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-
-    if (isAppend) {
-      container.insertAdjacentHTML('beforeend', feedHtml);
-      if (hayMas) {
-        const btn = container.querySelector('.btn-cargar-mas');
-        if (btn) btn.remove();
-        container.insertAdjacentHTML('beforeend', `<button class="btn-cargar-mas" onclick="cargarVTB()"><i class="fas fa-plus-circle"></i> Cargar más reportes</button>`);
-      } else {
-        const btn = container.querySelector('.btn-cargar-mas');
-        if (btn) btn.remove();
-      }
-    } else {
-      container.innerHTML = feedHtml + (hayMas
-        ? `<button class="btn-cargar-mas" onclick="cargarVTB()"><i class="fas fa-plus-circle"></i> Cargar más reportes</button>`
-        : '');
-    }
-  } catch (e) {
-    if (vtbPage <= 2) container.innerHTML = `
-      <div class="empty-state" style="border-color:#e8c9b6;background:#fcf3eb;color:#8a4a1c;">
-        <i class="fas fa-exclamation-triangle"></i>
-        No se pudieron cargar los reportes de Venezuela Te Busca.
-        <br><span style="font-size:.82rem;">Su API ya no está disponible públicamente. </span>
-        <br><span style="font-size:.82rem;"><a href="${VTB_PAGE}" target="_blank" rel="noopener" style="color:var(--red);">Visitá venezuelatebusca.com directamente</a> para consultar.</span>
-      </div>`;
-  }
-}
-
-// ============================================================
 // MASCOTAS - HuellaScan scrape
 // ============================================================
 const HUELLASCAN_PAGE = 'https://www.huellascan.com/terremoto/ver-todos';
@@ -1957,6 +1788,13 @@ let mascotasAllData = [];
 let mascotasPage = 1;
 let mascotasHayMas = true;
 let mascotasIds = new Set();
+
+const CORS_PROXIES = [
+  APP_CONFIG && APP_CONFIG.proxyWorkerUrl ? APP_CONFIG.proxyWorkerUrl + '?url=' : null,
+  '/api/proxy?url=',
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+].filter(Boolean);
 
 async function fetchMascotas() {
   const container = document.getElementById('mascotasResults');
@@ -2339,7 +2177,7 @@ async function buscarLocalizados() {
         <div class="empty-state">
           <i class="fas fa-user-slash"></i>
           No hay coincidencias en Localizados Venezuela para «<strong>${escHtml(term)}</strong>».
-          <br><span style="font-size:.82rem;color:#999;">Probá en Venezuela Te Busca o Desaparecidos Terremoto Venezuela usando los enlaces de arriba.</span>
+          <br><span style="font-size:.82rem;color:#999;">Probá con otro nombre o cédula, o usá los enlaces a las plataformas de arriba.</span>
         </div>
       `;
       document.getElementById('localizadosFilters').style.display = 'none';
