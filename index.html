@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Venezuela Ayuda - Terremotos 2026</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <style>
+    :root {
+      --red: #cf142b;
+      --blue: #002060;
+      --gold: #ffdd00;
+      --gray: #f4f4f4;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--gray);
+      color: #333;
+      line-height: 1.6;
+    }
+    .header {
+      background: linear-gradient(135deg, var(--blue), var(--red), var(--blue));
+      color: #fff;
+      padding: 1.5rem 1rem;
+      text-align: center;
+    }
+    .header h1 { font-size: 2rem; }
+    .header p { opacity: .9; font-size: .95rem; }
+    .badge-emergencia {
+      display: inline-block;
+      background: var(--gold);
+      color: var(--blue);
+      padding: .25rem 1.2rem;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: .78rem;
+      margin-top: .5rem;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    .nav-bar {
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      overflow-x: auto;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .nav-btn {
+      flex: 1;
+      min-width: 80px;
+      padding: .7rem .3rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: .72rem;
+      color: #666;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .1rem;
+      border-bottom: 3px solid transparent;
+      transition: all .2s;
+    }
+    .nav-btn i { font-size: 1rem; }
+    .nav-btn:hover { color: var(--red); background: #fff5f5; }
+    .nav-btn.activo { color: var(--red); border-bottom-color: var(--red); font-weight: 600; }
+
+    .page-wrap { position: relative; }
+    .page { padding: 1rem; max-width: 1200px; margin: 0 auto; position: absolute; width: 100%; left: 0; right: 0; opacity: 0; pointer-events: none; }
+    .page.activo { position: relative; opacity: 1; pointer-events: auto; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: .7rem;
+      margin-bottom: 1rem;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: .9rem;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+      border-top: 3px solid var(--red);
+    }
+    .stat-card i { font-size: 1.2rem; color: var(--red); }
+    .stat-card .num { font-size: 1.4rem; font-weight: 800; color: var(--blue); }
+    .stat-card .label { font-size: .72rem; color: #666; }
+
+    .titulo-seccion {
+      font-size: 1.2rem;
+      color: var(--blue);
+      margin: 1.5rem 0 .8rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .titulo-seccion i { color: var(--red); }
+
+    .centro-card { background:#fff; border-radius:10px; padding:1.2rem; box-shadow:0 2px 6px rgba(0,0,0,.06); display:flex; flex-direction:column; gap:.5rem; }
+    .centro-header { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+    .centro-nombre { font-weight:700; font-size:1rem; color:var(--blue); }
+    .centro-badge { font-size:.72rem; color:#fff; padding:2px 10px; border-radius:10px; white-space:nowrap; }
+    .centro-desc { font-size:.82rem; color:#555; margin:0; }
+    .centro-info { font-size:.78rem; color:#666; display:flex; flex-direction:column; gap:.2rem; }
+    .centro-info div i { width:16px; text-align:center; margin-right:4px; }
+    .centro-acciones { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.3rem; }
+    .centro-acciones .btn { font-size:.78rem; padding:.4rem .8rem; }
+    .leaflet-control-custom a { background:#fff; border-radius:2px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; }
+    .leaflet-control-custom a:hover { background:#f4f4f4; }
+
+    .org-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .org-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+      transition: transform .2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .org-card:hover { transform: translateY(-2px); }
+    .org-card h3 { font-size: .95rem; color: var(--blue); margin-bottom: .4rem; }
+    .org-card p { font-size: .8rem; color: #666; flex: 1; margin-bottom: .8rem; }
+    .org-card .btn {
+      padding: .45rem 1rem;
+      background: var(--red);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: .8rem;
+      text-align: center;
+    }
+    .org-card .btn:hover { background: #a01022; }
+
+    .auth-box {
+      max-width: 380px;
+      margin: 2rem auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,.1);
+    }
+    .auth-box h2 { text-align: center; color: var(--blue); margin-bottom: 1rem; font-size: 1.2rem; }
+    .auth-box input {
+      width: 100%;
+      padding: .65rem 1rem;
+      margin-bottom: .7rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: .9rem;
+    }
+    .auth-box input:focus { outline: none; border-color: var(--red); }
+    .auth-box .btn-primary {
+      width: 100%;
+      padding: .65rem;
+      background: var(--red);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .auth-box .btn-primary:hover { background: #a01022; }
+    .auth-box .toggle { text-align: center; margin-top: .7rem; font-size: .85rem; }
+    .auth-box .toggle a { color: var(--red); cursor: pointer; }
+    .auth-box .error { color: var(--red); font-size: .82rem; margin-bottom: .5rem; }
+    .auth-box .exito { color: #155724; font-size: .82rem; margin-bottom: .5rem; }
+
+    #turnstileWidget { display: flex; justify-content: center; min-height: 65px; margin: .5rem 0; }
+    #turnstileWidget iframe { max-width: 100%; }
+
+    #modalEditar form { display: flex; flex-direction: column; gap: .6rem; }
+    #modalEditar .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+    @media (max-width: 500px) { #modalEditar .form-row { grid-template-columns: 1fr; } }
+
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem 1rem;
+    }
+    .user-menu .avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: .8rem;
+    }
+
+    .form-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      margin-bottom: 1rem;
+    }
+    .form-card h3 { color: var(--blue); margin-bottom: 1rem; }
+    .form-group { margin-bottom: .7rem; }
+    .form-group label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: .25rem; color: #444; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: .55rem .8rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: .88rem;
+      font-family: inherit;
+    }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--red);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+
+    .centros-list { display: grid; gap: .7rem; }
+    .centro-item {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+    }
+    .centro-item h4 { color: var(--blue); font-size: .9rem; }
+    .centro-item p { font-size: .78rem; color: #666; }
+    .badge-estado {
+      font-size: .68rem;
+      padding: .15rem .5rem;
+      border-radius: 10px;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .badge-approved { background: #d4edda; color: #155724; }
+    .badge-pending { background: #fff3cd; color: #856404; }
+    .badge-rejected { background: #f8d7da; color: #721c24; }
+    .acciones { display: flex; gap: .4rem; margin-top: .4rem; }
+    .acciones button {
+      border: none; padding: .25rem .5rem; border-radius: 4px;
+      cursor: pointer; font-size: .72rem;
+    }
+    .btn-editar { background: #e8f4fd; color: #0c5460; }
+    .btn-eliminar { background: #fde8e8; color: #721c24; }
+
+    .mapa-leyenda {
+      background: #fff; border-radius: 10px; padding: .6rem 1rem;
+      margin-bottom: .7rem; font-size: .8rem; box-shadow: 0 2px 6px rgba(0,0,0,.06);
+    }
+
+    /* ===== DESAPARECIDOS - FEED ===== */
+    .feed-item {
+      background: #fff; border-radius: 12px; padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: .75rem;
+      display: flex; gap: 1rem; align-items: flex-start;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .feed-item:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.1); }
+    .feed-avatar {
+      flex: 0 0 52px; width: 52px; height: 52px; border-radius: 50%;
+      overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,.12);
+    }
+    .feed-avatar img { width: 100%; height: 100%; display: block; }
+    .feed-body { flex: 1; min-width: 0; }
+    .feed-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: .5rem; flex-wrap: wrap;
+    }
+    .feed-nombre {
+      font-size: 1.05rem; font-weight: 700; color: var(--blue);
+      line-height: 1.3;
+    }
+    .feed-badge {
+      font-size: .68rem; font-weight: 700; padding: .2rem .6rem;
+      border-radius: 999px; white-space: nowrap; flex-shrink: 0;
+    }
+    .feed-badge-localizado { background: #d4edda; color: #155724; }
+    .feed-badge-fallecido { background: #f8d7da; color: #721c24; }
+    .feed-badge-desconocido { background: #e2e3e5; color: #383d41; }
+    .feed-meta {
+      display: flex; flex-wrap: wrap; gap: .3rem 1rem;
+      margin-top: .35rem; font-size: .82rem; color: #666;
+    }
+    .feed-meta strong { color: #444; }
+    .feed-lugar {
+      margin-top: .4rem; font-size: .82rem; color: #555;
+    }
+    .feed-lugar i { color: var(--red); width: 14px; text-align: center; margin-right: .2rem; }
+    .feed-obs {
+      margin-top: .3rem; font-size: .8rem; color: #888;
+      font-style: italic;
+    }
+    .feed-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: .4rem; margin-top: .55rem;
+      padding-top: .5rem; border-top: 1px solid #f0f0f0;
+    }
+    .feed-fuente { font-size: .7rem; color: #aaa; }
+    .feed-actions { display: flex; gap: .3rem; }
+    .feed-actions a {
+      font-size: .72rem; padding: .25rem .5rem; border-radius: 6px;
+      text-decoration: none; font-weight: 600;
+    }
+    .feed-link { color: var(--red); background: #fff5f5; }
+    .feed-link:hover { background: #fee; }
+    .feed-whatsapp { color: #25D366; background: #e8faf0; }
+    .feed-whatsapp:hover { background: #d0f5e0; }
+
+    .feed-filters {
+      display: flex; gap: .5rem; flex-wrap: wrap; margin: .5rem 0;
+      position: sticky; top: 47px; z-index: 100;
+      background: var(--gray); padding: .5rem 0;
+    }
+    .feed-filters select, .feed-filters input {
+      padding: .45rem .7rem; border: 1px solid #ddd; border-radius: 8px;
+      font-size: .82rem; background: #fff;
+    }
+    .feed-filters select:focus, .feed-filters input:focus {
+      outline: none; border-color: var(--red);
+    }
+
+    .btn-cargar-mas {
+      display: block; width: 100%; padding: .8rem;
+      background: #fff; border: 1.5px solid #ddd; border-radius: 10px;
+      font-size: .9rem; font-weight: 600; color: var(--blue); cursor: pointer;
+      text-align: center; margin-top: .5rem;
+    }
+    .btn-cargar-mas:hover { background: #f0f4ff; border-color: var(--blue); }
+
+    .empty-state {
+      background: #fff; border-radius: 10px; padding: 2rem; text-align: center;
+      color: #999; box-shadow: 0 2px 6px rgba(0,0,0,.06);
+    }
+    .empty-state i { font-size: 2rem; display: block; margin-bottom: .5rem; }
+    .loading-spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2.5px solid #ddd; border-top-color: var(--red);
+      border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: middle; margin-right: .5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .search-box {
+      display: flex; gap: .5rem; margin: .8rem 0;
+    }
+    .search-box input {
+      flex: 1; padding: .7rem 1rem; border: 1.5px solid #ddd;
+      border-radius: 8px; font-size: .95rem;
+    }
+    .search-box input:focus { outline: none; border-color: var(--red); }
+    .search-box button {
+      padding: .7rem 1.5rem; background: var(--red); color: #fff;
+      border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: .9rem;
+    }
+    .search-box button:hover { background: #a01022; }
+
+    .tabs {
+      display: flex; gap: 0; margin: 1rem 0; background: #fff;
+      border-radius: 10px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,.06);
+    }
+    .tab-btn {
+      flex: 1; padding: .7rem; border: none; background: none; cursor: pointer;
+      font-size: .88rem; color: #666; font-weight: 600;
+      border-bottom: 3px solid transparent; transition: all .2s;
+    }
+    .tab-btn i { margin-right: .4rem; }
+    .tab-btn:hover { color: var(--red); background: #fff5f5; }
+    .tab-btn.activo { color: var(--red); border-bottom-color: var(--red); }
+    .tab-pane { display: none; }
+    .tab-pane.activo { display: block; }
+
+    .platform-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem; margin: 1rem 0;
+    }
+    .platform-card {
+      background: #fff; border-radius: 10px; padding: 1.2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06); text-align: center;
+      border-top: 3px solid var(--blue);
+    }
+    .platform-card h3 { color: var(--blue); font-size: 1rem; margin-bottom: .3rem; }
+    .platform-card .stat-num {
+      font-size: 1.3rem; font-weight: 800; color: var(--red);
+    }
+    .platform-card p { font-size: .8rem; color: #666; margin: .3rem 0 .7rem; }
+    .platform-card .btn {
+      display: inline-block; padding: .5rem 1.2rem; background: var(--blue);
+      color: #fff; text-decoration: none; border-radius: 6px; font-size: .8rem; font-weight: 600;
+    }
+    .platform-card .btn:hover { opacity: .9; }
+    .platform-card .btn-secondary {
+      background: var(--red); margin-left: .4rem;
+    }
+
+    @media (max-width: 600px) {
+      .header h1 { font-size: 1.3rem; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <h1><i class="fas fa-hand-heart"></i> Venezuela Ayuda</h1>
+  <p>Plataforma ciudadana — Terremotos de Yaracuy, 24 de junio 2026</p>
+  <div class="badge-emergencia"><i class="fas fa-exclamation-triangle"></i> EMERGENCIA ACTIVA</div>
+</header>
+
+<nav class="nav-bar" id="navBar">
+  <button class="nav-btn activo" data-pagina="inicio"><i class="fas fa-home"></i> Inicio</button>
+  <button class="nav-btn" data-pagina="mapa"><i class="fas fa-map-marked-alt"></i> Mapa</button>
+  <button class="nav-btn" data-pagina="registrar"><i class="fas fa-plus-circle"></i> Registrar</button>
+  <button class="nav-btn" data-pagina="mis-centros"><i class="fas fa-list"></i> Mis centros</button>
+  <button class="nav-btn" data-pagina="moderar" id="navModerar" style="display:none;"><i class="fas fa-check-double"></i> Moderar</button>
+  <button class="nav-btn" data-pagina="desaparecidos"><i class="fas fa-search"></i> Desaparecidos</button>
+  <button class="nav-btn" data-pagina="directorio"><i class="fas fa-hand-holding-heart"></i> Directorio</button>
+  <button class="nav-btn" data-pagina="cuenta" id="navCuenta"><i class="fas fa-user"></i> Cuenta</button>
+</nav>
+
+<div class="page-wrap">
+
+<!-- ===== INICIO ===== -->
+<div class="page activo" id="pag-inicio">
+  <div class="stats" id="statsContainer">
+    <div class="stat-card"><i class="fas fa-chart-line"></i><div class="num" id="statMag">7.2 / 7.5</div><div class="label">Magnitud</div></div>
+    <div class="stat-card"><i class="fas fa-heart-broken"></i><div class="num" id="statMuertos">164+</div><div class="label">Fallecidos</div></div>
+    <div class="stat-card"><i class="fas fa-hospital"></i><div class="num" id="statHeridos">970+</div><div class="label">Heridos</div></div>
+    <div class="stat-card"><i class="fas fa-building"></i><div class="num" id="statCentros">0</div><div class="label">Centros activos</div></div>
+  </div>
+
+  <div class="titulo-seccion"><i class="fas fa-info-circle"></i> Situación actual</div>
+  <div style="background:#fff;border-radius:10px;padding:1.2rem;box-shadow:0 2px 6px rgba(0,0,0,.06);margin-bottom:1rem;font-size:.9rem;">
+    <p><strong>24 de junio de 2026</strong> — Dos terremotos de magnitud <strong>7.2 y 7.5</strong> sacudieron el centro-norte de Venezuela, con epicentro en el estado <strong>Yaracuy</strong>, a las 6:04 PM. El doblete sísmico duró 39 segundos y afectó gravemente a <strong>La Guaira, Caracas, Miranda, Carabobo, Aragua y Falcón</strong>.</p>
+    <p style="margin-top:.5rem;">La ONU OCHA reporta más de <strong>40.000 damnificados</strong>. Han llegado equipos de rescate de México, Brasil, Países Bajos, España, Francia, Qatar, China y EE.UU.</p>
+    <p style="margin-top:.5rem;" id="sismosEnVivo"><i class="fas fa-sync-alt fa-spin"></i> Cargando datos sísmicos del USGS...</p>
+  </div>
+
+  <div class="titulo-seccion"><i class="fas fa-hands-helping"></i> ¿Cómo ayudar?</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem;margin-bottom:1.5rem;">
+    <div style="background:#fff;border-radius:10px;padding:1.2rem;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+      <div style="width:34px;height:34px;background:var(--red);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem;font-weight:800;">1</div>
+      <h4 style="color:var(--blue);font-size:.9rem;">Dona</h4>
+      <p style="font-size:.78rem;color:#666;">A las organizaciones verificadas en el Directorio</p>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:1.2rem;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+      <div style="width:34px;height:34px;background:var(--red);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem;font-weight:800;">2</div>
+      <h4 style="color:var(--blue);font-size:.9rem;">Registra un centro</h4>
+      <p style="font-size:.78rem;color:#666;">Si tienes un centro de acopio, regístralo en el mapa</p>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:1.2rem;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+      <div style="width:34px;height:34px;background:var(--red);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem;font-weight:800;">3</div>
+      <h4 style="color:var(--blue);font-size:.9rem;">Comparte</h4>
+      <p style="font-size:.78rem;color:#666;">Difunde esta plataforma para que más gente ayude</p>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:1.2rem;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+      <div style="width:34px;height:34px;background:var(--red);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem;font-weight:800;">4</div>
+      <h4 style="color:var(--blue);font-size:.9rem;">Voluntariado</h4>
+      <p style="font-size:.78rem;color:#666;">Ofrece tu tiempo para ayudar en terreno</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAPA ===== -->
+<div class="page" id="pag-mapa">
+  <div class="titulo-seccion"><i class="fas fa-map-marked-alt"></i> Centros de ayuda en Venezuela</div>
+  <div class="mapa-leyenda">
+    <i class="fas fa-info-circle" style="color:var(--red);"></i>
+    <span style="color:var(--red);font-weight:700;">●</span> Acopio
+    <span style="color:#e67e22;margin-left:.5rem;font-weight:700;">●</span> Refugio
+    <span style="color:#2980b9;margin-left:.5rem;font-weight:700;">●</span> Hospital
+  </div>
+  <div class="search-box" style="margin:.6rem 0;">
+    <input type="text" id="centrosSearch" placeholder="Buscar por nombre, ciudad o estado..." />
+    <select id="centrosFilterTipo" style="flex:0 0 140px;padding:.45rem;">
+      <option value="todos">Todos</option>
+      <option value="acopio">Acopio</option>
+      <option value="refugio">Refugio</option>
+      <option value="hospital">Hospital</option>
+    </select>
+  </div>
+  <div id="centrosLista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;"></div>
+</div>
+
+<!-- ===== REGISTRAR ===== -->
+<div class="page" id="pag-registrar">
+  <div id="regAuthGate">
+    <div class="auth-box">
+      <h2><i class="fas fa-user-lock"></i> Inicia sesión para registrar</h2>
+      <p style="text-align:center;font-size:.85rem;color:#666;margin-bottom:1rem;">Necesitas una cuenta para gestionar centros de ayuda</p>
+      <div id="authUIReg"></div>
+    </div>
+  </div>
+  <div id="regForm" style="display:none;">
+    <div class="titulo-seccion"><i class="fas fa-plus-circle"></i> Registrar centro de ayuda</div>
+    <p style="font-size:.85rem;color:#666;margin-bottom:.8rem;">Completa los datos de tu centro de acopio, refugio u hospital. Los centros aparecen en el mapa después de ser verificados.</p>
+    <div class="form-card">
+      <form id="formCentro">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre del centro *</label>
+            <input type="text" id="f_nombre" required placeholder="Ej: Centro de Acopio Altamira">
+          </div>
+          <div class="form-group">
+            <label>Tipo *</label>
+            <select id="f_tipo" required>
+              <option value="">Selecciona...</option>
+              <option value="acopio">Centro de Acopio</option>
+              <option value="refugio">Refugio Temporal</option>
+              <option value="hospital">Hospital / Centro de Salud</option>
+              <option value="voluntariado">Punto de Voluntariado</option>
+              <option value="distribucion">Centro de Distribución</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripción *</label>
+          <textarea id="f_descripcion" required placeholder="Describe qué ofrece el centro, capacidad, horarios, etc."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Dirección *</label>
+            <input type="text" id="f_direccion" required placeholder="Calle, número, urbanización, referencia">
+          </div>
+          <div class="form-group">
+            <label>Ciudad *</label>
+            <input type="text" id="f_ciudad" required placeholder="Ej: Caracas, Maracay, Valencia...">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Estado *</label>
+            <select id="f_estado" required>
+              <option value="">Selecciona...</option>
+              <option value="Amazonas">Amazonas</option><option value="Anzoátegui">Anzoátegui</option>
+              <option value="Apure">Apure</option><option value="Aragua">Aragua</option>
+              <option value="Barinas">Barinas</option><option value="Bolívar">Bolívar</option>
+              <option value="Carabobo">Carabobo</option><option value="Cojedes">Cojedes</option>
+              <option value="Delta Amacuro">Delta Amacuro</option>
+              <option value="Distrito Capital">Distrito Capital</option>
+              <option value="Falcón">Falcón</option><option value="Guárico">Guárico</option>
+              <option value="La Guaira">La Guaira</option><option value="Lara">Lara</option>
+              <option value="Mérida">Mérida</option><option value="Miranda">Miranda</option>
+              <option value="Monagas">Monagas</option><option value="Nueva Esparta">Nueva Esparta</option>
+              <option value="Portuguesa">Portuguesa</option><option value="Sucre">Sucre</option>
+              <option value="Táchira">Táchira</option><option value="Trujillo">Trujillo</option>
+              <option value="Yaracuy">Yaracuy</option><option value="Zulia">Zulia</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Teléfono / WhatsApp</label>
+            <input type="text" id="f_telefono" placeholder="+58 XXX XXX XXXX">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Instagram</label>
+            <input type="text" id="f_instagram" placeholder="@tucentro">
+          </div>
+          <div class="form-group">
+            <label>Horarios</label>
+            <input type="text" id="f_horarios" placeholder="Ej: Lun-Dom 9:00-18:00">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>¿Qué necesitan? (separado por comas) *</label>
+          <textarea id="f_items" required placeholder="Ej: agua, alimentos no perecederos, medicinas, ropa, frazadas, linternas, pañales, kits de higiene"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Ubicación en el mapa *</label>
+          <p style="font-size:.78rem;color:#666;margin-bottom:.4rem;">Hacé clic en el mapa o usá el botón <i class="fas fa-crosshairs"></i> para marcar la ubicación. Dirección, ciudad y estado se completan solos.</p>
+          <div id="miniMapa" style="height:230px;border-radius:8px;border:1px solid #ddd;"></div>
+          <div style="display:flex;gap:.5rem;margin-top:.4rem;">
+            <input type="text" id="f_lat" placeholder="Latitud" readonly style="flex:1;background:#f9f9f9;font-size:.82rem;" />
+            <input type="text" id="f_lng" placeholder="Longitud" readonly style="flex:1;background:#f9f9f9;font-size:.82rem;" />
+          </div>
+        </div>
+        <div id="turnstileRegWidget" style="display:flex;justify-content:center;min-height:65px;margin:.5rem 0;"></div>
+        <button type="submit" class="btn-primary" style="margin-top:.5rem;">
+          <i class="fas fa-save"></i> Registrar centro
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MIS CENTROS ===== -->
+<div class="page" id="pag-mis-centros">
+  <div id="misCentrosGate">
+    <div class="auth-box">
+      <h2><i class="fas fa-user-lock"></i> Inicia sesión</h2>
+      <p style="text-align:center;font-size:.85rem;color:#666;margin-bottom:1rem;">Ingresa para ver y gestionar tus centros registrados</p>
+      <div id="authUIMis"></div>
+    </div>
+  </div>
+  <div id="misCentrosContenido" style="display:none;">
+    <div class="titulo-seccion"><i class="fas fa-list"></i> Mis centros registrados</div>
+    <div id="misCentrosLista" class="centros-list"></div>
+  </div>
+</div>
+
+<!-- ===== DIRECTORIO ===== -->
+<div class="page" id="pag-directorio">
+  <div class="titulo-seccion"><i class="fas fa-hand-holding-heart"></i> Organizaciones verificadas</div>
+  <div class="org-grid" id="directorioGrid"></div>
+
+  <div class="titulo-seccion" style="margin-top:2rem;"><i class="fas fa-phone-alt"></i> Contactos de emergencia en Venezuela</div>
+  <div style="background:#fff;border-radius:10px;padding:1rem;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+    <div style="display:grid;gap:.6rem;">
+      <div style="display:flex;align-items:center;gap:.8rem;padding:.5rem 0;border-bottom:1px solid #eee;">
+        <i class="fas fa-phone" style="color:var(--red);width:18px;"></i>
+        <div><strong>911</strong><br><span style="font-size:.82rem;color:#666;">Número único de emergencias</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.8rem;padding:.5rem 0;border-bottom:1px solid #eee;">
+        <i class="fas fa-shield-alt" style="color:var(--red);width:18px;"></i>
+        <div><strong>Protección Civil</strong><br><span style="font-size:.82rem;color:#666;">0800-PROTECCIÓN (0800-7768322)</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.8rem;padding:.5rem 0;border-bottom:1px solid #eee;">
+        <i class="fas fa-plus-circle" style="color:var(--red);width:18px;"></i>
+        <div><strong>Cruz Roja Venezolana</strong><br><span style="font-size:.82rem;color:#666;">0212-571.28.53 / 571.28.81</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.8rem;padding:.5rem 0;">
+        <i class="fas fa-fire-extinguisher" style="color:var(--red);width:18px;"></i>
+        <div><strong>Bomberos de Caracas</strong><br><span style="font-size:.82rem;color:#666;">0212-545.12.12</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="titulo-seccion" style="margin-top:2rem;"><i class="fas fa-newspaper"></i> Fuentes de información confiables</div>
+  <div style="display:grid;gap:.6rem;">
+    <a href="https://reliefweb.int" target="_blank" style="display:flex;align-items:center;gap:.6rem;padding:.8rem 1rem;background:#fff;border-radius:8px;text-decoration:none;color:#333;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+      <i class="fas fa-globe" style="color:var(--red);"></i> <span>ReliefWeb (UN OCHA) — Reportes oficiales</span>
+    </a>
+    <a href="https://www.directrelief.org/2026/06/venezuela-earthquake-caracas-damage/" target="_blank" style="display:flex;align-items:center;gap:.6rem;padding:.8rem 1rem;background:#fff;border-radius:8px;text-decoration:none;color:#333;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+      <i class="fas fa-truck-medical" style="color:var(--red);"></i> <span>Direct Relief — Ayuda médica a Venezuela</span>
+    </a>
+    <a href="https://www.globalgiving.org/projects/venezuela-earthquake-2026/" target="_blank" style="display:flex;align-items:center;gap:.6rem;padding:.8rem 1rem;background:#fff;border-radius:8px;text-decoration:none;color:#333;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+      <i class="fas fa-hand-holding-usd" style="color:var(--red);"></i> <span>GlobalGiving — Fondo de respuesta para Venezuela</span>
+    </a>
+    <a href="https://www.ayudahumanitariavenezuela.org/" target="_blank" style="display:flex;align-items:center;gap:.6rem;padding:.8rem 1rem;background:#fff;border-radius:8px;text-decoration:none;color:#333;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+      <i class="fas fa-boxes" style="color:var(--red);"></i> <span>Ayuda Humanitaria Venezuela — Centros de acopio en Venezuela y el mundo</span>
+    </a>
+    <a href="https://www.wvi.org/publications/venezuela-crisis/venezuela-earthquake-overview-june-26-2026" target="_blank" style="display:flex;align-items:center;gap:.6rem;padding:.8rem 1rem;background:#fff;border-radius:8px;text-decoration:none;color:#333;box-shadow:0 2px 6px rgba(0,0,0,.06);">
+      <i class="fas fa-seedling" style="color:var(--red);"></i> <span>World Vision — Situación en Venezuela</span>
+    </a>
+  </div>
+</div>
+
+<!-- ===== DESAPARECIDOS ===== -->
+<div class="page" id="pag-desaparecidos">
+  <div class="titulo-seccion"><i class="fas fa-search"></i> Búsqueda de personas y mascotas</div>
+  <p style="font-size:.85rem;color:#666;margin-bottom:.5rem;">
+    Datos extraídos de plataformas ciudadanas. <strong>No registramos desaparecidos aquí</strong> — si necesitas reportar a alguien, usa los enlaces a cada plataforma.
+  </p>
+
+  <div class="stats" id="statsDesaparecidos">
+    <div class="stat-card"><i class="fas fa-users"></i><div class="num" id="dStatVTB">31.267</div><div class="label">Venezuela Te Busca</div></div>
+    <div class="stat-card"><i class="fas fa-users"></i><div class="num" id="dStatDTV">40.000+</div><div class="label">Desap. Terremoto Vzla</div></div>
+    <div class="stat-card"><i class="fas fa-user-check"></i><div class="num" id="dStatLoc">—</div><div class="label">Localizados Venezuela</div></div>
+    <div class="stat-card"><i class="fas fa-paw"></i><div class="num" id="dStatPets">—</div><div class="label">Patitas a Salvo</div></div>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="desaparecidosSearch" placeholder="Buscar por nombre, apellido o cédula..." />
+    <button id="desaparecidosGo"><i class="fas fa-search"></i> Buscar</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn activo" data-tab="personas"><i class="fas fa-user"></i> Personas</button>
+    <button class="tab-btn" data-tab="mascotas"><i class="fas fa-paw"></i> Mascotas</button>
+  </div>
+
+  <!-- TAB PERSONAS -->
+  <div class="tab-pane activo" id="tab-personas">
+    <div class="platform-grid">
+      <div class="platform-card">
+        <h3><i class="fas fa-globe" style="color:var(--red);"></i> Venezuela Te Busca</h3>
+        <div class="stat-num">31.267</div>
+        <p>Personas reportadas — 24.329 por localizar, 6.938 localizadas. Gestión de Julia Alessandra Mariano.</p>
+        <a class="btn" href="https://www.venezuelatebusca.com/" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Ir al sitio</a>
+        <a class="btn btn-secondary" href="https://www.venezuelatebusca.com/" target="_blank" rel="noopener"><i class="fas fa-user-plus"></i> Reportar</a>
+      </div>
+      <div class="platform-card">
+        <h3><i class="fas fa-globe" style="color:var(--red);"></i> Desaparecidos Terremoto Venezuela</h3>
+        <div class="stat-num">40.000+</div>
+        <p>Registro ciudadano de personas no localizadas tras el sismo. Por The Empire Tech.</p>
+        <a class="btn" href="https://desaparecidosterremotovenezuela.com/" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Ir al sitio</a>
+        <a class="btn btn-secondary" href="https://desaparecidosterremotovenezuela.com/" target="_blank" rel="noopener"><i class="fas fa-user-plus"></i> Reportar</a>
+      </div>
+    </div>
+
+    <div class="titulo-seccion" style="margin-top:0;"><i class="fas fa-sync-alt"></i> Localizados Venezuela — hospitales y refugios</div>
+    <p style="font-size:.82rem;color:#666;margin-bottom:.6rem;">
+      Personas ya localizadas en hospitales, refugios y recintos. Datos desde <a href="https://localizadosvenezuela.com" target="_blank" rel="noopener" style="color:var(--red);">localizadosvenezuela.com</a>.
+    </p>
+    <div class="search-box" style="margin:.5rem 0;">
+      <input type="text" id="desaparecidosSearch" placeholder="Buscar por nombre, apellido o cédula..." />
+      <button id="desaparecidosGo"><i class="fas fa-search"></i> Buscar</button>
+    </div>
+    <div class="feed-filters" id="localizadosFilters" style="display:none;">
+      <select id="filterCondicion">
+        <option value="todas">Todas las condiciones</option>
+        <option value="desconocido">Sin información</option>
+        <option value="localizado">Localizado</option>
+        <option value="fallecido">Fallecido</option>
+      </select>
+      <span style="font-size:.82rem;color:#999;align-self:center;" id="feedCount"></span>
+    </div>
+    <div id="localizadosResults">
+      <div class="empty-state">
+        <i class="fas fa-search"></i>
+        Escribí un nombre o cédula arriba y presioná <strong>Buscar</strong> para consultar personas localizadas.
+      </div>
+    </div>
+
+    <div class="titulo-seccion" style="margin-top:1.5rem;"><i class="fas fa-images"></i> Venezuela Te Busca — feed con fotos</div>
+    <p style="font-size:.82rem;color:#666;margin-bottom:.6rem;">
+      Personas reportadas como desaparecidas en <a href="https://www.venezuelatebusca.com/" target="_blank" rel="noopener" style="color:var(--red);">venezuelatebusca.com</a>. Datos en tiempo real desde su API pública.
+    </p>
+
+    <div class="feed-filters" id="vtbFilters">
+      <select id="vtbFilterStatus">
+        <option value="missing">Por localizar</option>
+        <option value="found">Localizados</option>
+        <option value="all">Todos</option>
+      </select>
+      <input type="text" id="vtbSearch" placeholder="Buscar por nombre..." style="flex:1;min-width:120px;" />
+      <button id="vtbSearchBtn" style="padding:.45rem 1rem;background:var(--blue);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;"><i class="fas fa-search"></i></button>
+      <span style="font-size:.82rem;color:#999;align-self:center;" id="vtbCount"></span>
+    </div>
+
+    <div id="vtbResults">
+      <div class="empty-state"><span class="loading-spinner"></span> Cargando reportes de Venezuela Te Busca...</div>
+    </div>
+  </div>
+
+  <!-- TAB MASCOTAS -->
+  <div class="tab-pane" id="tab-mascotas">
+    <div class="platform-grid">
+      <div class="platform-card">
+        <h3><i class="fas fa-paw" style="color:#e67e22;"></i> Patitas a Salvo</h3>
+        <div class="stat-num">—</div>
+        <p>Plataforma de Vanessa Odreman Santander para reportar mascotas perdidas y encontradas en Venezuela.</p>
+        <a class="btn" href="https://migenteve.com/" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Ir al sitio</a>
+      </div>
+    </div>
+    <div class="empty-state">
+      <i class="fas fa-paw"></i>
+      <p>Los datos de mascotas se consultan directamente en <a href="https://migenteve.com/" target="_blank" rel="noopener" style="color:var(--red);">Patitas a Salvo</a>. No tenemos una API pública disponible todavía.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CUENTA ===== -->
+<div class="page" id="pag-cuenta">
+  <div id="cuentaGate">
+    <div class="auth-box">
+      <h2 id="authTitulo"><i class="fas fa-sign-in-alt"></i> Inicia sesión</h2>
+      <div id="authError" class="error"></div>
+      <input type="email" id="authEmail" placeholder="Correo electrónico" />
+      <input type="password" id="authPassword" placeholder="Contraseña (mín. 6 caracteres)" />
+      <div id="turnstileWidget" class="cf-turnstile" data-sitekey="0x4AAAAAADr9f8FslVdDLFjX" data-callback="onTurnstileToken" data-expired-callback="onTurnstileExpired" style="margin:.5rem 0;"></div>
+      <button class="btn-primary" id="authBoton">Entrar</button>
+      <div class="toggle"><a id="authToggle">¿No tienes cuenta? Regístrate</a></div>
+      <div class="toggle" style="margin-top:.3rem;">
+        <a id="authMagic" style="font-size:.78rem;">O envía un magic link a tu correo</a>
+      </div>
+    </div>
+  </div>
+  <div id="cuentaContenido" style="display:none;">
+    <div class="titulo-seccion"><i class="fas fa-user-circle"></i> Mi cuenta</div>
+    <div class="form-card">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;" id="miAvatar">?</div>
+        <div>
+          <div style="font-weight:600;font-size:1rem;" id="miEmail">-</div>
+          <div style="font-size:.82rem;color:#666;" id="miUserId">-</div>
+        </div>
+      </div>
+      <button id="btnSalir" class="btn-primary" style="background:#6c757d;">
+        <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+      </button>
+  </div>
+</div>
+</div>
+
+</div>
+
+<script src="config.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script>
+// ============================================================
+// INICIALIZAR SUPABASE
+// ============================================================
+const supabase = window.supabase.createClient(
+  APP_CONFIG.supabaseUrl,
+  APP_CONFIG.supabaseAnonKey,
+  { auth: { persistSession: true, autoRefreshToken: true, flowType: 'pkce' } }
+);
+
+let captchaToken = null;
+let regCaptchaToken = null;
+
+function onTurnstileToken(token) { captchaToken = token; }
+function onTurnstileExpired() { captchaToken = null; }
+
+// ============================================================
+// ESTADO
+// ============================================================
+let usuario = null;
+let esModerador = false;
+let miRol = '';
+let mapaPpal = null;
+let miniMapa = null;
+let miniMarker = null;
+let markers = [];
+let todosLosCentros = [
+  { id:'estatico-1', name:'Centro de Acopio - Club Hípico', description:'Centro de acopio habilitado por Rotaract Caracas. Reciben donaciones para los damnificados.', type:'acopio', address:'Terrazas del Club Hípico', city:'Caracas', state:'Distrito Capital', lat:10.4880, lng:-66.8550, items_needed:'Agua potable, alimentos no perecederos, medicinas, ropa, mantas, linternas, kits de primeros auxilios', schedule:'Lun-Dom 8:00-20:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-2', name:'Centro de Acopio - Altamira', description:'Centro de acopio del Comando ConVzla. Punto de recolección de ayuda humanitaria.', type:'acopio', address:'Cuarta avenida de Altamira, entre 9na y 10ma transversal, quinta El Bejucal', city:'Caracas', state:'Miranda', lat:10.4960, lng:-66.8480, items_needed:'Agua, alimentos no perecederos, insumos médicos, ropa, abrigos', schedule:'Lun-Dom 9:00-18:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-3', name:'Centro de Acopio - La Guaira', description:'Punto de recolección en el puerto. Prioridad: insumos médicos y agua embotellada.', type:'acopio', address:'Puerto de La Guaira, zona comercial', city:'La Guaira', state:'La Guaira', lat:10.6056, lng:-66.8589, items_needed:'Medicinas, vendas, gasas, alcohol, agua embotellada, alimentos, frazadas', schedule:'Lun-Dom 7:00-19:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-4', name:'Centro de Acopio - Maracay (Comando ConVzla)', description:'Centro de acopio del Comando ConVzla en Maracay.', type:'acopio', address:'Av. 19 de Abril, Centro Comercial La Capilla, Piso 1, Local 21', city:'Maracay', state:'Aragua', lat:10.2500, lng:-67.6000, items_needed:'Agua potable, alimentos no perecederos, ropa, medicinas, pañales', schedule:'Lun-Dom 9:00-18:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-5', name:'Centro de Acopio - Maracay (Voluntad Popular)', description:'Centro de acopio de Voluntad Popular en Maracay.', type:'acopio', address:'Paseo de la Libertad, Av. Las Delicias, frente al Centro Médico de Maracay', city:'Maracay', state:'Aragua', lat:10.2400, lng:-67.5900, items_needed:'Agua, alimentos, ropa, medicinas, artículos de primeros auxilios', schedule:'Lun-Dom 9:00-18:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-6', name:'Centro de Acopio - Valencia', description:'Centro de acopio del Comando ConVzla y Operación Todos con Venezuela.', type:'acopio', address:'Av. Monseñor Adams, El Viñedo, Edificio Talislandia, Mezzanina', city:'Valencia', state:'Carabobo', lat:10.1700, lng:-68.0000, items_needed:'Agua, alimentos no perecederos, medicinas, ropa, frazadas, kits de aseo', schedule:'Lun-Dom 9:00-18:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-7', name:'Centro de Acopio - Bomberos Guacara', description:'Cuerpo de Bomberos habilitado como centro de acopio.', type:'acopio', address:'Carretera Nacional Guacara, sede del Cuerpo de Bomberos', city:'Guacara', state:'Carabobo', lat:10.2300, lng:-67.8700, items_needed:'Agua, alimentos, ropa, medicinas', schedule:'Lun-Dom 8:00-20:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-8', name:'Centro de Acopio - Vente Zulia', description:'Centro de acopio habilitado por Vente Venezuela en Maracaibo.', type:'acopio', address:'Calle 70 con Av. 15A y 15B N° 15A-39 (calle paralela a Nebabrica), sede de Vente Zulia', city:'Maracaibo', state:'Zulia', lat:10.6400, lng:-71.6300, items_needed:'Agua potable, alimentos no perecederos, medicinas, ropa, frazadas', schedule:'Lun-Dom 9:00-18:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-9', name:'Centro de Acopio - UNT Zulia', description:'Centro de acopio habilitado por Un Nuevo Tiempo Zulia.', type:'acopio', address:'Sede regional de Un Nuevo Tiempo (UNT Zulia)', city:'Maracaibo', state:'Zulia', lat:10.6450, lng:-71.6250, items_needed:'Agua, alimentos, medicinas, ropa, artículos de limpieza', schedule:'Lun-Dom 9:00-17:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-10', name:'Centro de Acopio - Barquisimeto', description:'Centro de acopio para recibir ayuda destinada a los afectados por los sismos.', type:'acopio', address:'Tatas Food, carrera 15 entre calles 13A y 13B', city:'Barquisimeto', state:'Lara', lat:10.0600, lng:-69.3200, items_needed:'Agua, alimentos no perecederos, ropa, medicinas, frazadas', schedule:'Lun-Dom 10:00-18:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-11', name:'Centro de Acopio - ULA Táchira', description:'Centro de acopio habilitado por la Universidad de Los Andes, núcleo Táchira.', type:'acopio', address:'Núcleo Táchira de la Universidad de Los Andes (ULA)', city:'San Cristóbal', state:'Táchira', lat:7.7700, lng:-72.2300, items_needed:'Agua potable, alimentos no perecederos, ropa en buen estado, medicinas', schedule:'Lun-Vie 8:00-17:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-12', name:'Centro de Acopio - Maturín', description:'Centro de acopio de Voluntad Popular Monagas.', type:'acopio', address:'Calle 6, antigua Bermúdez, casa N° 11 (antiguo restaurante El Oeste)', city:'Maturín', state:'Monagas', lat:9.7500, lng:-63.1800, items_needed:'Agua, alimentos, ropa, medicinas, artículos de primeros auxilios', schedule:'Lun-Dom 9:00-17:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-13', name:'Centro de Acopio - Ciudad Bolívar', description:'Centro de acopio de Voluntad Popular en el estado Bolívar.', type:'acopio', address:'Esquina de Banesco, Av. República, municipio Angostura del Orinoco', city:'Ciudad Bolívar', state:'Bolívar', lat:8.1200, lng:-63.5400, items_needed:'Agua, alimentos no perecederos, medicinas, ropa, frazadas', schedule:'Lun-Dom 9:00-17:00', status:'approved', verified:true, phone:'' },
+  { id:'estatico-14', name:'Refugio Temporal - Poliedro de Caracas', description:'Refugio habilitado para damnificados. Capacidad aproximada: 500 personas. Llevar colchonetas, cobijas e higiene personal.', type:'refugio', address:'Poliedro de Caracas, Av. Libertador', city:'Caracas', state:'Distrito Capital', lat:10.4460, lng:-66.8760, items_needed:'Colchonetas, frazadas, kits de higiene, alimentos preparados, agua', schedule:'24 horas', status:'approved', verified:true, phone:'' },
+  { id:'estatico-15', name:'Refugio Temporal - UCV', description:'Refugio habilitado en la Universidad Central de Venezuela. Capacidad: 300 personas.', type:'refugio', address:'Universidad Central de Venezuela, Ciudad Universitaria', city:'Caracas', state:'Distrito Capital', lat:10.4900, lng:-66.8900, items_needed:'Colchonetas, alimentos, agua, kits de aseo personal', schedule:'24 horas', status:'approved', verified:true, phone:'' },
+  { id:'estatico-16', name:'Hospital Universitario de Caracas', description:'Principal centro de recepción de heridos. Necesitan donación de sangre urgente.', type:'hospital', address:'Av. Universidad, San Pedro', city:'Caracas', state:'Distrito Capital', lat:10.5010, lng:-66.9170, items_needed:'Donación de sangre (todas), insumos médicos, gasas, vendas, medicamentos, guantes', schedule:'24 horas - Emergencias', status:'approved', verified:true, phone:'' },
+  { id:'estatico-17', name:'Hospital José María Vargas', description:'Hospital de La Guaira. Atención de emergencias. Requieren insumos médicos urgentemente.', type:'hospital', address:'Av. Soublette, La Guaira', city:'La Guaira', state:'La Guaira', lat:10.6036, lng:-66.8567, items_needed:'Insumos médicos, medicamentos, gasas, vendas, suero, guantes quirúrgicos', schedule:'24 horas', status:'approved', verified:true, phone:'' },
+  { id:'estatico-18', name:'Hospital Pérez Carreño', description:'Recibe pacientes de Petare y zonas aledañas. Necesitan insumos y personal voluntario.', type:'hospital', address:'Av. San Martín, Oeste de Caracas', city:'Caracas', state:'Distrito Capital', lat:10.4967, lng:-66.9300, items_needed:'Insumos médicos, medicamentos, donación de sangre', schedule:'24 horas', status:'approved', verified:true, phone:'' },
+];
+let modoLogin = true;
+
+// ============================================================
+// NAVEGACIÓN
+// ============================================================
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    const p = btn.dataset.pagina;
+    document.querySelectorAll('.page').forEach(pg => pg.classList.remove('activo'));
+    document.getElementById('pag-' + p).classList.add('activo');
+    if (p === 'mapa') renderCentros();
+    if (p === 'registrar') revisarAuthReg();
+    if (p === 'mis-centros') revisarAuthMis();
+    if (p === 'moderar') { if (esModerador) { cargarPendientes(); cargarModeradores(); } else document.getElementById('moderarLista').innerHTML = '<div style="text-align:center;padding:2rem;color:#999;"><i class="fas fa-lock" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>No tenés permisos de moderación.</div>'; }
+    if (p === 'desaparecidos' && !window._vtbLoaded) setTimeout(cargarVTB, 100);
+  });
+});
+
+// ============================================================
+// AUTENTICACIÓN
+// ============================================================
+const authEmail = document.getElementById('authEmail');
+const authPass = document.getElementById('authPassword');
+const authBoton = document.getElementById('authBoton');
+const authToggle = document.getElementById('authToggle');
+const authTitulo = document.getElementById('authTitulo');
+const authError = document.getElementById('authError');
+const authMagic = document.getElementById('authMagic');
+
+authToggle.addEventListener('click', () => {
+  modoLogin = !modoLogin;
+  authTitulo.innerHTML = modoLogin
+    ? '<i class="fas fa-sign-in-alt"></i> Inicia sesión'
+    : '<i class="fas fa-user-plus"></i> Regístrate';
+  authBoton.textContent = modoLogin ? 'Entrar' : 'Crear cuenta';
+  authToggle.textContent = modoLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión';
+  authError.textContent = '';
+});
+
+authBoton.addEventListener('click', async () => {
+  const email = authEmail.value.trim();
+  const pass = authPass.value;
+  authError.textContent = '';
+  authError.className = 'error';
+  if (!email) { authError.textContent = 'Escribe tu correo'; return; }
+  if (!pass || pass.length < 6) { authError.textContent = 'La contraseña debe tener al menos 6 caracteres'; return; }
+  if (!captchaToken) { authError.textContent = 'Completá el captcha "No soy un robot"'; return; }
+  try {
+    const res = modoLogin
+      ? await supabase.auth.signInWithPassword({ email, password: pass, options: { captchaToken } })
+      : await supabase.auth.signUp({ email, password: pass, options: { captchaToken } });
+    if (res.error) throw res.error;
+    if (res.data.user) {
+      if (!res.data.session) {
+        authError.className = 'exito';
+        authError.textContent = '✅ Revisá tu correo electrónico. Te enviamos un enlace de confirmación. Hacé clic en el enlace para activar tu cuenta y después iniciá sesión.';
+        return;
+      }
+      authEmail.value = '';
+      authPass.value = '';
+      actualizarUI();
+    }
+  } catch (e) {
+    authError.textContent = e.message || 'Error';
+  }
+});
+
+authMagic.addEventListener('click', async () => {
+  const email = authEmail.value.trim();
+  if (!email) { authError.textContent = 'Escribe tu correo primero'; return; }
+  authError.textContent = '';
+  if (!captchaToken) { authError.textContent = 'Completá el captcha "No soy un robot"'; return; }
+  try {
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { captchaToken } });
+    if (error) throw error;
+    authError.className = 'exito';
+    authError.textContent = '✓ Revisa tu bandeja de entrada. Te enviamos un magic link.';
+  } catch (e) {
+    authError.textContent = e.message;
+    authError.className = 'error';
+  }
+});
+
+document.getElementById('btnSalir').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  actualizarUI();
+});
+
+supabase.auth.onAuthStateChange((event, session) => {
+  usuario = session?.user ?? null;
+  actualizarUI();
+  if (usuario) cargarCentros();
+});
+
+async function actualizarUI() {
+  const { data: { user } } = await supabase.auth.getUser();
+  usuario = user;
+
+  if (user) {
+    document.getElementById('cuentaGate').style.display = 'none';
+    document.getElementById('cuentaContenido').style.display = 'block';
+    document.getElementById('miEmail').textContent = user.email;
+    document.getElementById('miUserId').textContent = 'ID: ' + user.id.slice(0, 8) + '...';
+    document.getElementById('miAvatar').textContent = user.email[0].toUpperCase();
+    document.getElementById('navCuenta').innerHTML =
+      '<i class="fas fa-user-check"></i> ' + user.email.split('@')[0].slice(0, 10);
+    verificarModerador();
+  } else {
+    document.getElementById('cuentaGate').style.display = 'block';
+    document.getElementById('cuentaContenido').style.display = 'none';
+    document.getElementById('navCuenta').innerHTML = '<i class="fas fa-user"></i> Cuenta';
+    document.getElementById('navModerar').style.display = 'none';
+    esModerador = false;
+    miRol = '';
+  }
+  revisarAuthReg();
+  revisarAuthMis();
+}
+
+function revisarAuthReg() {
+  document.getElementById('regAuthGate').style.display = usuario ? 'none' : 'block';
+  document.getElementById('regForm').style.display = usuario ? 'block' : 'none';
+  if (usuario && !miniMapa) initMiniMapa();
+  if (usuario && typeof turnstile !== 'undefined') {
+    const el = document.getElementById('turnstileRegWidget');
+    if (el && !el.querySelector('iframe')) {
+      turnstile.render('#turnstileRegWidget', {
+        sitekey: '0x4AAAAAADr9f8FslVdDLFjX',
+        callback: (token) => { regCaptchaToken = token; },
+        'expired-callback': () => { regCaptchaToken = null; }
+      });
+    }
+  }
+}
+
+function revisarAuthMis() {
+  document.getElementById('misCentrosGate').style.display = usuario ? 'none' : 'block';
+  document.getElementById('misCentrosContenido').style.display = usuario ? 'block' : 'none';
+  if (usuario) cargarMisCentros();
+}
+
+async function verificarModerador() {
+  esModerador = false;
+  miRol = '';
+  document.getElementById('navModerar').style.display = 'none';
+  if (!usuario) return;
+  try {
+    const { data, error } = await supabase
+      .from('moderators')
+      .select('role')
+      .eq('email', usuario.email)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) {
+      esModerador = true;
+      miRol = data.role;
+      const labels = { owner:'Owner', admin:'Admin', manager:'Manager', moderator:'Mod' };
+      document.getElementById('navModerar').innerHTML = `<i class="fas fa-check-double"></i> ${labels[miRol] || 'Moderar'}`;
+      document.getElementById('navModerar').style.display = 'inline-flex';
+    }
+  } catch (_) {}
+}
+
+// Render auth gate places
+[['authUIReg','registrar'],['authUIMis','mis-centros']].forEach(([id, page]) => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.innerHTML = `<p style="text-align:center;font-size:.85rem;color:#666;">Ve a <a href="#" onclick="document.querySelector('[data-pagina=cuenta]').click();return false;" style="color:var(--red);">Cuenta</a> para iniciar sesión o registrarte.</p>`;
+  }
+});
+
+// ============================================================
+// API USGS - SISMOS EN VIVO
+// ============================================================
+async function fetchSismos() {
+  const url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2026-06-24&endtime=2026-06-28&minlatitude=8&maxlatitude=13&minlongitude=-70&maxlongitude=-65&minmagnitude=3';
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    const sismos = d.features || [];
+    const grandes = sismos.filter(s => s.properties.mag >= 6);
+    const recientes = sismos.slice(0, 5);
+
+    let html = '<strong><i class="fas fa-bolt"></i> Últimos sismos registrados (USGS):</strong><br>';
+    if (!recientes.length) {
+      html += '<span style="font-size:.82rem;">Sin datos recientes</span>';
+    } else {
+      recientes.forEach(s => {
+        const mag = s.properties.mag;
+        const lugar = s.properties.place || 'Desconocido';
+        const hora = new Date(s.properties.time).toLocaleString('es-VE');
+        const color = mag >= 6 ? 'var(--red)' : mag >= 5 ? '#e67e22' : '#f39c12';
+        html += `<span style="font-size:.8rem;display:block;margin-top:.2rem;">
+          <span style="color:${color};font-weight:700;">M${mag.toFixed(1)}</span> — ${lugar} — ${hora}
+        </span>`;
+      });
+    }
+    document.getElementById('sismosEnVivo').innerHTML = html;
+    if (grandes.length) {
+      document.getElementById('statMag').textContent = grandes.map(s => s.properties.mag.toFixed(1)).sort((a,b)=>b-a).join(' / ');
+    }
+  } catch (_) {
+    document.getElementById('sismosEnVivo').innerHTML = '<span style="font-size:.82rem;color:#666;">Datos sísmicos no disponibles</span>';
+  }
+}
+fetchSismos();
+
+// ============================================================
+// SUPABASE - CENTROS
+// ============================================================
+async function cargarCentros() {
+  if (!usuario) {
+    document.getElementById('statCentros').textContent = todosLosCentros.filter(c => c.status === 'approved').length;
+    renderCentros();
+    return;
+  }
+  try {
+    const { data, error } = await supabase
+      .from('centers')
+      .select('*')
+      .eq('user_id', usuario.id);
+    if (error && error.code === 'PGRST301') { return; }
+    if (error) throw error;
+    todosLosCentros = todosLosCentros.filter(c => c.user_id !== usuario.id);
+    if (data) data.forEach(c => todosLosCentros.push(c));
+    document.getElementById('statCentros').textContent = todosLosCentros.filter(c => c.status === 'approved').length;
+    renderCentros();
+  } catch (_) {}
+}
+
+async function cargarMisCentros() {
+  const div = document.getElementById('misCentrosLista');
+  if (!usuario) { div.innerHTML = ''; return; }
+  try {
+    const { data, error } = await supabase
+      .from('centers').select('*').eq('user_id', usuario.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    if (!data || !data.length) {
+      div.innerHTML = '<div style="text-align:center;padding:2rem;color:#666;"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>No has registrado centros todavía. <a href="#" onclick="document.querySelector(\'[data-pagina=registrar]\').click();return false;" style="color:var(--red);display:block;margin-top:.5rem;">Registra tu primer centro</a></div>';
+      return;
+    }
+    const labels = { acopio:'Acopio', refugio:'Refugio', hospital:'Hospital', voluntariado:'Voluntariado', distribucion:'Distribución' };
+    div.innerHTML = data.map(c => `
+      <div class="centro-item">
+        <div style="display:flex;justify-content:space-between;align-items:start;">
+          <div>
+            <h4>${c.name}</h4>
+            <p>${c.city}, ${c.state} — ${labels[c.type]||c.type}</p>
+            <p style="font-size:.72rem;color:#999;">${c.address}</p>
+          </div>
+          <span class="badge-estado badge-${c.status}">${c.status === 'approved' ? 'Aprobado' : c.status === 'pending' ? 'Pendiente' : 'Rechazado'}</span>
+        </div>
+        <div class="acciones">
+          <button class="btn-eliminar" onclick="eliminarCentro('${c.id}')"><i class="fas fa-trash"></i> Eliminar</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    div.innerHTML = '<div style="text-align:center;padding:1rem;color:#666;"><i class="fas fa-exclamation-triangle"></i> Error: ' + e.message + '</div>';
+  }
+}
+
+async function eliminarCentro(id) {
+  if (!confirm('¿Eliminar este centro definitivamente?')) return;
+  try {
+    await supabase.from('centers').delete().eq('id', id);
+    cargarMisCentros();
+    cargarCentros();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+// ============================================================
+// MODERACIÓN
+// ============================================================
+let modCentroEditando = null;
+
+async function cargarPendientes() {
+  const div = document.getElementById('moderarLista');
+  div.innerHTML = '<div style="text-align:center;padding:2rem;color:#666;"><i class="fas fa-spinner fa-pulse" style="font-size:1.5rem;display:block;margin-bottom:.5rem;"></i>Cargando...</div>';
+  try {
+    const filtro = document.getElementById('modSearch')?.value?.toLowerCase() || '';
+    const estado = document.getElementById('modFilter')?.value || 'pending';
+
+    let query = supabase.from('centers').select('*').order('created_at', { ascending: false });
+    if (estado !== 'all') query = query.eq('status', estado);
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const todos = filtro ? data.filter(c => c.name?.toLowerCase().includes(filtro)) : data;
+    renderModerarStats(todos, estado);
+    renderModerarLista(div, todos);
+  } catch (e) {
+    div.innerHTML = '<div style="text-align:center;padding:1rem;color:#666;"><i class="fas fa-exclamation-triangle"></i> Error: ' + e.message + '</div>';
+  }
+}
+
+function renderModerarStats(data, estado) {
+  const container = document.getElementById('modStats');
+  if (estado === 'all') {
+    const st = { pending:0, approved:0, rejected:0 };
+    data.forEach(c => { if (st[c.status] !== undefined) st[c.status]++; });
+    container.innerHTML = `
+      <div class="stat-card" style="background:#fff3cd;"><div class="num">${st.pending}</div><div class="label">Pendientes</div></div>
+      <div class="stat-card" style="background:#d4edda;"><div class="num">${st.approved}</div><div class="label">Aprobados</div></div>
+      <div class="stat-card" style="background:#f8d7da;"><div class="num">${st.rejected}</div><div class="label">Rechazados</div></div>
+      <div class="stat-card"><div class="num">${data.length}</div><div class="label">Total</div></div>
+    `;
+  } else {
+    container.innerHTML = `
+      <div class="stat-card"><div class="num">${data.length}</div><div class="label">${estado === 'pending' ? 'Pendientes' : estado === 'approved' ? 'Aprobados' : 'Rechazados'}</div></div>
+      <div class="stat-card" style="background:#fff3cd;"><div class="num" id="modStatPend">?</div><div class="label">Pendientes</div></div>
+      <div class="stat-card" style="background:#d4edda;"><div class="num" id="modStatApr">?</div><div class="label">Aprobados</div></div>
+      <div class="stat-card" style="background:#f8d7da;"><div class="num" id="modStatRej">?</div><div class="label">Rechazados</div></div>
+    `;
+    supabase.from('centers').select('status').then(({ data: dd }) => {
+      if (dd) {
+        const st = { pending:0, approved:0, rejected:0 };
+        dd.forEach(c => { if (st[c.status] !== undefined) st[c.status]++; });
+        document.getElementById('modStatPend').textContent = st.pending;
+        document.getElementById('modStatApr').textContent = st.approved;
+        document.getElementById('modStatRej').textContent = st.rejected;
+      }
+    });
+  }
+}
+
+function renderModerarLista(div, data) {
+  if (!data.length) {
+    div.innerHTML = '<div style="text-align:center;padding:2rem;color:#999;"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>No hay centros con ese filtro.</div>';
+    return;
+  }
+  const labels = { acopio:'Acopio', refugio:'Refugio', hospital:'Hospital', voluntariado:'Voluntariado', distribucion:'Distribución' };
+  const badges = { pending:['Pendiente','#856404'], approved:['Aprobado','var(--green)'], rejected:['Rechazado','#dc3545'] };
+  div.innerHTML = data.map(c => {
+    const [stLabel, stColor] = badges[c.status] || ['Desconocido','#999'];
+    const emailHtml = c.user_email ? escHtml(c.user_email) : (c.user_id ? `<i>ID: ${c.user_id.slice(0,8)}...</i>` : '<i>Anónimo</i>');
+    const gmUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
+    return `<div class="centro-card">
+      <div class="centro-header">
+        <div class="centro-nombre">${escHtml(c.name)}</div>
+        <span class="centro-badge" style="background:${stColor};">${stLabel}</span>
+        <span class="centro-badge" style="background:#666;">${labels[c.type]||c.type}</span>
+      </div>
+      <p class="centro-desc">${escHtml(c.description)}</p>
+      <div class="centro-info">
+        <div><i class="fas fa-map-pin"></i> ${escHtml(c.address)}, ${escHtml(c.city)}, ${escHtml(c.state)}</div>
+        <div><i class="fas fa-boxes"></i> <strong>Necesitan:</strong> ${escHtml(c.items_needed)}</div>
+        ${c.phone ? `<div><i class="fas fa-phone"></i> ${escHtml(c.phone)}</div>` : ''}
+        ${c.schedule ? `<div><i class="fas fa-clock"></i> ${escHtml(c.schedule)}</div>` : ''}
+        ${c.instagram ? `<div><i class="fab fa-instagram"></i> ${escHtml(c.instagram)}</div>` : ''}
+        <div style="font-size:.75rem;color:#999;margin-top:.3rem;border-top:1px solid #eee;padding-top:.3rem;">
+          <i class="fas fa-user"></i> Registró: ${emailHtml}
+          ${c.created_at ? ` | ${new Date(c.created_at).toLocaleString('es-VE')}` : ''}
+        </div>
+      </div>
+      <div class="centro-acciones">
+        ${c.status === 'pending' ? `<button class="btn" style="background:var(--green);" onclick="modAprobar('${c.id}')"><i class="fas fa-check"></i> Aprobar</button>` : ''}
+        ${c.status === 'pending' ? `<button class="btn" style="background:#dc3545;" onclick="modRechazar('${c.id}')"><i class="fas fa-times"></i> Rechazar</button>` : ''}
+        ${c.status === 'rejected' ? `<button class="btn" style="background:var(--green);" onclick="modRestaurar('${c.id}')"><i class="fas fa-undo"></i> Restaurar</button>` : ''}
+        ${miRol !== 'moderator' ? `<button class="btn" style="background:var(--blue);" onclick="modEditar('${c.id}')"><i class="fas fa-edit"></i> Editar</button>` : ''}
+        <button class="btn" style="background:#666;" onclick="window.open('${gmUrl}','_blank')"><i class="fas fa-map-marked-alt"></i> Ver mapa</button>
+        ${miRol === 'owner' || miRol === 'admin' ? `<button class="btn" style="background:#dc3545;" onclick="modEliminar('${c.id}')"><i class="fas fa-trash"></i> Eliminar</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('modSearch')?.addEventListener('input', cargarPendientes);
+document.getElementById('modFilter')?.addEventListener('change', cargarPendientes);
+
+async function modAprobar(id) {
+  try {
+    const { error } = await supabase.from('centers').update({ status: 'approved' }).eq('id', id);
+    if (error) throw error;
+    await supabase.from('moderation_log').insert({
+      moderator_email: usuario?.email, center_id: id, action: 'approved'
+    }).maybeSingle();
+    cargarPendientes(); cargarCentros();
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function modRechazar(id) {
+  try {
+    const { error } = await supabase.from('centers').update({ status: 'rejected' }).eq('id', id);
+    if (error) throw error;
+    await supabase.from('moderation_log').insert({
+      moderator_email: usuario?.email, center_id: id, action: 'rejected'
+    }).maybeSingle();
+    cargarPendientes(); cargarCentros();
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function modRestaurar(id) {
+  try {
+    const { error } = await supabase.from('centers').update({ status: 'pending' }).eq('id', id);
+    if (error) throw error;
+    await supabase.from('moderation_log').insert({
+      moderator_email: usuario?.email, center_id: id, action: 'restored'
+    }).maybeSingle();
+    cargarPendientes(); cargarCentros();
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function modEditar(id) {
+  modCentroEditando = id;
+  try {
+    const { data, error } = await supabase.from('centers').select('*').eq('id', id).single();
+    if (error) throw error;
+    if (!data) { alert('Centro no encontrado'); return; }
+    document.getElementById('e_nombre').value = data.name || '';
+    document.getElementById('e_tipo').value = data.type || 'acopio';
+    document.getElementById('e_descripcion').value = data.description || '';
+    document.getElementById('e_direccion').value = data.address || '';
+    document.getElementById('e_ciudad').value = data.city || '';
+    document.getElementById('e_estado').value = data.state || '';
+    document.getElementById('e_telefono').value = data.phone || '';
+    document.getElementById('e_items').value = data.items_needed || '';
+    document.getElementById('e_horarios').value = data.schedule || '';
+    document.getElementById('e_instagram').value = data.instagram || '';
+    document.getElementById('e_lat').value = data.lat || '';
+    document.getElementById('e_lng').value = data.lng || '';
+    document.getElementById('modalEditar').style.display = 'block';
+  } catch (e) { alert('Error al cargar: ' + e.message); }
+}
+
+function cerrarModalEditar() {
+  document.getElementById('modalEditar').style.display = 'none';
+  modCentroEditando = null;
+}
+
+document.getElementById('formEditarCentro').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!modCentroEditando) return;
+  try {
+    const { error } = await supabase.from('centers').update({
+      name: document.getElementById('e_nombre').value.trim(),
+      type: document.getElementById('e_tipo').value,
+      description: document.getElementById('e_descripcion').value.trim(),
+      address: document.getElementById('e_direccion').value.trim(),
+      city: document.getElementById('e_ciudad').value.trim(),
+      state: document.getElementById('e_estado').value,
+      phone: document.getElementById('e_telefono').value.trim(),
+      items_needed: document.getElementById('e_items').value.trim(),
+      schedule: document.getElementById('e_horarios').value.trim(),
+      instagram: document.getElementById('e_instagram').value.trim(),
+      lat: parseFloat(document.getElementById('e_lat').value),
+      lng: parseFloat(document.getElementById('e_lng').value),
+    }).eq('id', modCentroEditando);
+    if (error) throw error;
+    await supabase.from('moderation_log').insert({
+      moderator_email: usuario?.email, center_id: modCentroEditando, action: 'edited'
+    }).maybeSingle();
+    cerrarModalEditar();
+    cargarPendientes(); cargarCentros();
+  } catch (e) { alert('Error al guardar: ' + e.message); }
+});
+
+async function modEliminar(id) {
+  if (!confirm('¿Eliminar este centro definitivamente? No se puede deshacer.')) return;
+  try {
+    const { error } = await supabase.from('centers').delete().eq('id', id);
+    if (error) throw error;
+    await supabase.from('moderation_log').insert({
+      moderator_email: usuario?.email, center_id: id, action: 'deleted'
+    }).maybeSingle();
+    cargarPendientes(); cargarCentros();
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+// ============================================================
+// GESTIÓN DE MODERADORES
+// ============================================================
+async function cargarModeradores() {
+  const div = document.getElementById('moderadoresLista');
+  const section = document.getElementById('moderadoresSection');
+  if (!div || !section) return;
+  const puedeGestionar = miRol === 'owner' || miRol === 'admin';
+  const rolLabels = { owner:'Owner', admin:'Admin', manager:'Manager', moderator:'Moderator' };
+  const rolesOrden = { owner:0, admin:1, manager:2, moderator:3 };
+
+  if (!puedeGestionar) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  // Actualizar opciones del select según el rol
+  const sel = document.getElementById('nuevoModRol');
+  if (miRol === 'owner') {
+    sel.innerHTML = '<option value="moderator">Moderador</option><option value="manager">Manager</option><option value="admin">Admin</option>';
+  } else {
+    sel.innerHTML = '<option value="moderator">Moderador</option><option value="manager">Manager</option>';
+  }
+
+  try {
+    const { data, error } = await supabase.from('moderators').select('email, role, created_at').order('created_at');
+    if (error) throw error;
+    if (!data || !data.length) {
+      div.innerHTML = '<div style="color:#999;font-size:.85rem;">No hay moderadores registrados.</div>';
+      return;
+    }
+    const miNivel = rolesOrden[miRol] ?? 99;
+    div.innerHTML = `<div style="font-size:.82rem;color:#666;margin-bottom:.4rem;">${data.length} moderador(es):</div>` +
+      data.map(m => {
+        const nivel = rolesOrden[m.role] ?? 99;
+        const puedeEliminar = nivel > miNivel;
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem .6rem;background:#f9f9f9;border-radius:6px;margin-bottom:.3rem;border-left:3px solid ${m.role === 'owner' ? 'var(--gold)' : m.role === 'admin' ? '#dc3545' : m.role === 'manager' ? 'var(--blue)' : '#6c757d'};">
+          <span><strong style="font-size:.78rem;color:${m.role === 'owner' ? 'var(--gold)' : '#666'};background:${m.role === 'owner' ? '#fff3cd' : '#eee'};padding:1px 6px;border-radius:4px;margin-right:6px;">${rolLabels[m.role]||m.role}</strong> ${escHtml(m.email)}</span>
+          ${puedeEliminar ? `<button class="btn" style="background:#dc3545;font-size:.72rem;padding:.2rem .6rem;" onclick="eliminarModerador('${escHtml(m.email)}','${m.role}')"><i class="fas fa-times"></i></button>` : ''}
+        </div>`;
+      }).join('');
+  } catch (e) {
+    div.innerHTML = '<div style="color:#999;font-size:.82rem;">Error al cargar</div>';
+  }
+}
+
+async function agregarModerador() {
+  const input = document.getElementById('nuevoModEmail');
+  const rol = document.getElementById('nuevoModRol')?.value || 'moderator';
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) { alert('Email inválido'); return; }
+  if (miRol === 'admin' && rol === 'admin') { alert('Solo el Owner puede crear Admins'); return; }
+  try {
+    const { error } = await supabase.from('moderators').insert({ email, role: rol });
+    if (error) throw error;
+    input.value = '';
+    cargarModeradores();
+  } catch (e) {
+    if (e.code === '23505') alert('Ese email ya es moderador');
+    else alert('Error: ' + e.message);
+  }
+}
+
+async function eliminarModerador(email, role) {
+  if (!confirm(`¿Quitar a ${email} (${role}) como moderador?`)) return;
+  if (email === usuario?.email) { alert('No podés eliminarte a vos mismo'); return; }
+  const rolesOrden = { owner:0, admin:1, manager:2, moderator:3 };
+  if (rolesOrden[role] <= rolesOrden[miRol]) { alert('No podés eliminar a alguien de igual o mayor rango'); return; }
+  try {
+    const { error } = await supabase.from('moderators').delete().eq('email', email);
+    if (error) throw error;
+    cargarModeradores();
+  } catch (e) { alert('Error: ' + e.message); }
+}
+// ============================================================
+function renderCentros() {
+  const filtro = (document.getElementById('centrosSearch')?.value || '').toLowerCase();
+  const tipo = document.getElementById('centrosFilterTipo')?.value || 'todos';
+  const container = document.getElementById('centrosLista');
+  if (!container) return;
+
+  const labels = { acopio:'Acopio', refugio:'Refugio', hospital:'Hospital' };
+  const colores = { acopio:'var(--red)', refugio:'#e67e22', hospital:'#2980b9' };
+
+  const visibles = todosLosCentros.filter(c => {
+    if (c.status !== 'approved' && (!usuario || c.user_id !== usuario.id)) return false;
+    if (tipo !== 'todos' && c.type !== tipo) return false;
+    if (filtro) {
+      const txt = (c.name + ' ' + c.city + ' ' + c.state + ' ' + c.description).toLowerCase();
+      if (!txt.includes(filtro)) return false;
+    }
+    return true;
+  });
+
+  if (!visibles.length) {
+    container.innerHTML = '<div style="text-align:center;padding:2rem;color:#999;"><i class="fas fa-search" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>No se encontraron centros con ese filtro.</div>';
+    return;
+  }
+
+  container.innerHTML = visibles.map(c => {
+    const gmUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
+    const gmDir = `https://www.google.com/maps/search/${encodeURIComponent(c.name + ', ' + c.address + ', ' + c.city)}`;
+    return `<div class="centro-card">
+      <div class="centro-header">
+        <div class="centro-nombre">${escHtml(c.name)}</div>
+        <span class="centro-badge" style="background:${colores[c.type]||'var(--red)'};">${labels[c.type]||c.type}</span>
+      </div>
+      <p class="centro-desc">${escHtml(c.description)}</p>
+      <div class="centro-info">
+        <div><i class="fas fa-map-pin"></i> ${escHtml(c.address)}, ${escHtml(c.city)}, ${escHtml(c.state)}</div>
+        <div><i class="fas fa-boxes"></i> <strong>Necesitan:</strong> ${escHtml(c.items_needed)}</div>
+        ${c.phone ? `<div><i class="fas fa-phone"></i> ${escHtml(c.phone)}</div>` : ''}
+        ${c.schedule ? `<div><i class="fas fa-clock"></i> ${escHtml(c.schedule)}</div>` : ''}
+      </div>
+      <div class="centro-acciones">
+        <a class="btn" href="${gmUrl}" target="_blank" rel="noopener"><i class="fas fa-location-arrow"></i> Cómo llegar (Google Maps)</a>
+        <a class="btn" style="background:#666;" href="${gmDir}" target="_blank" rel="noopener"><i class="fas fa-search-location"></i> Ver ubicación</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('centrosSearch')?.addEventListener('input', renderCentros);
+document.getElementById('centrosFilterTipo')?.addEventListener('change', renderCentros);
+
+function agregarBotonGPS(mapa, callback) {
+  const btn = L.control({ position: 'topleft' });
+  btn.onAdd = () => {
+    const d = document.createElement('div');
+    d.className = 'leaflet-bar leaflet-control leaflet-control-custom';
+    d.innerHTML = '<a style="font-size:18px;cursor:pointer;line-height:34px;text-align:center;" title="Mi ubicación"><i class="fas fa-crosshairs"></i></a>';
+    d.onclick = () => {
+      mapa.locate({ setView: true, maxZoom: 14, enableHighAccuracy: true });
+    };
+    return d;
+  };
+  btn.addTo(mapa);
+  mapa.on('locationfound', e => {
+    const { lat, lng } = e.latlng;
+    if (callback) callback(lat, lng);
+  });
+  mapa.on('locationerror', () => {
+    alert('No se pudo obtener tu ubicación. Activá el GPS.');
+  });
+}
+
+function reverseGeocode(lat, lng) {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=es`;
+  fetch(url, { headers: { 'User-Agent': 'VenezuelaAyuda/2.0' } })
+    .then(r => r.json())
+    .then(d => {
+      if (!d || d.error) return;
+      const a = d.address || {};
+      const calle = [a.road, a.house_number, a.suburb, a.neighbourhood].filter(Boolean).join(', ') || d.display_name?.split(',')[0] || '';
+      const ciudad = a.city || a.town || a.village || a.county || '';
+      let estado = a.state || '';
+      const estadosVE = ['Amazonas','Anzoátegui','Apure','Aragua','Barinas','Bolívar','Carabobo','Cojedes','Delta Amacuro','Distrito Capital','Falcón','Guárico','La Guaira','Lara','Mérida','Miranda','Monagas','Nueva Esparta','Portuguesa','Sucre','Táchira','Trujillo','Yaracuy','Zulia'];
+      const match = estadosVE.find(e => estado.includes(e));
+      if (match) estado = match;
+      if (calle) document.getElementById('f_direccion').value = calle;
+      if (ciudad) document.getElementById('f_ciudad').value = ciudad;
+      if (estado) {
+        const sel = document.getElementById('f_estado');
+        if ([...sel.options].some(o => o.value === estado)) sel.value = estado;
+      }
+    })
+    .catch(() => {});
+}
+
+// ============================================================
+// MINI MAPA PARA REGISTRO
+// ============================================================
+function initMiniMapa() {
+  if (miniMapa) return;
+  miniMapa = L.map('miniMapa').setView([10.4806, -66.9036], 7);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(miniMapa);
+  miniMapa.on('click', e => {
+    const { lat, lng } = e.latlng;
+    document.getElementById('f_lat').value = lat.toFixed(6);
+    document.getElementById('f_lng').value = lng.toFixed(6);
+    if (miniMarker) miniMapa.removeLayer(miniMarker);
+    miniMarker = L.marker([lat, lng]).addTo(miniMapa);
+    miniMapa.setView([lat, lng], 12);
+    reverseGeocode(lat, lng);
+  });
+  agregarBotonGPS(miniMapa, (lat, lng) => {
+    document.getElementById('f_lat').value = lat.toFixed(6);
+    document.getElementById('f_lng').value = lng.toFixed(6);
+    if (miniMarker) miniMapa.removeLayer(miniMarker);
+    miniMarker = L.marker([lat, lng]).addTo(miniMapa);
+    miniMapa.setView([lat, lng], 14);
+    reverseGeocode(lat, lng);
+  });
+}
+
+// ============================================================
+// FORMULARIO DE REGISTRO
+// ============================================================
+document.getElementById('formCentro').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!usuario) { alert('Primero inicia sesión'); return; }
+
+  const data = {
+    user_id: usuario.id,
+    user_email: usuario.email,
+    name: document.getElementById('f_nombre').value.trim(),
+    type: document.getElementById('f_tipo').value,
+    description: document.getElementById('f_descripcion').value.trim(),
+    address: document.getElementById('f_direccion').value.trim(),
+    city: document.getElementById('f_ciudad').value.trim(),
+    state: document.getElementById('f_estado').value,
+    phone: document.getElementById('f_telefono').value.trim(),
+    instagram: document.getElementById('f_instagram').value.trim(),
+    items_needed: document.getElementById('f_items').value.trim(),
+    schedule: document.getElementById('f_horarios').value.trim(),
+    lat: parseFloat(document.getElementById('f_lat').value),
+    lng: parseFloat(document.getElementById('f_lng').value),
+    status: 'pending',
+  };
+
+  if (!data.lat || !data.lng) { alert('Haz clic en el mapa para marcar la ubicación'); return; }
+  if (!regCaptchaToken) { alert('Completá el captcha "No soy un robot"'); return; }
+
+  try {
+    const { error } = await supabase.from('centers').insert(data);
+    if (error) throw error;
+    alert('¡Registrado con éxito! Un moderador revisará la información para aprobarlo. Gracias por ayudar.');
+    document.getElementById('formCentro').reset();
+    if (miniMarker) { miniMapa.removeLayer(miniMarker); miniMarker = null; }
+    document.getElementById('f_lat').value = '';
+    document.getElementById('f_lng').value = '';
+    cargarCentros();
+    cargarMisCentros();
+  } catch (err) {
+    alert('Error al registrar: ' + err.message);
+  }
+});
+
+// ============================================================
+// DIRECTORIO DE ORGANIZACIONES
+// ============================================================
+const organizaciones = [
+  { icon:'fa-hand-holding-heart', color:'#e67e22', name:'Direct Relief', desc:'Envía suministros médicos de emergencia a hospitales y clínicas en Venezuela.', url:'https://www.directrelief.org/2026/06/venezuela-earthquake-caracas-damage/', btn:'Donar' },
+  { icon:'fa-globe-americas', color:'#27ae60', name:'GlobalGiving', desc:'Fondo de respuesta al terremoto de Venezuela 2026. Financia organizaciones locales.', url:'https://www.globalgiving.org/projects/venezuela-earthquake-2026/', btn:'Donar' },
+  { icon:'fa-hand-holding-usd', color:'#8e44ad', name:'I Love Venezuela Foundation', desc:'Entrega alimentos, agua, refugio y medicinas a familias afectadas. GoFundMe verificado.', url:'https://www.gofundme.com/f/emergency-relief-for-venezuela-earthquake-victims', btn:'Donar' },
+  { icon:'fa-seedling', color:'#16a085', name:'World Vision', desc:'Asistencia humanitaria a niños y familias venezolanas. Distribución de alimentos e insumos.', url:'https://www.wvi.org/publications/venezuela-crisis/venezuela-earthquake-overview-june-26-2026', btn:'Ver más' },
+  { icon:'fa-boxes', color:'#2c3e50', name:'Ayuda Humanitaria Venezuela', desc:'ONG 501(c)(3) con centros de acopio en Venezuela, EE.UU., Europa y más. 7 años de labor.', url:'https://www.ayudahumanitariavenezuela.org/', btn:'Ver centros' },
+  { icon:'fa-united-nations', color:'#3498db', name:'UN OCHA Venezuela', desc:'Coordinación de la respuesta humanitaria internacional. Reportes de situación oficiales.', url:'https://www.unocha.org/venezuela', btn:'Ver reportes' },
+  { icon:'fa-child', color:'#2980b9', name:'Save the Children', desc:'Protección a niños afectados por los terremotos. Refugio, alimentos y apoyo psicosocial.', url:'https://www.savethechildren.org.uk/how-you-can-help/emergencies/venezuela-earthquake', btn:'Donar' },
+  { icon:'fa-plus-circle', color:'#cf142b', name:'Cruz Roja Venezolana', desc:'Asistencia humanitaria, primeros auxilios, rescate y distribución de ayuda en zonas afectadas.', url:'https://www.cruzrojavenezolana.org/', btn:'Contactar' },
+];
+
+const grid = document.getElementById('directorioGrid');
+organizaciones.forEach(o => {
+  const card = document.createElement('div');
+  card.className = 'org-card';
+  card.innerHTML = `
+    <h3><i class="fas ${o.icon}" style="color:${o.color};"></i> ${o.name}</h3>
+    <p>${o.desc}</p>
+    <a class="btn" href="${o.url}" target="_blank" rel="noopener">${o.btn}</a>
+  `;
+  grid.appendChild(card);
+});
+
+// ============================================================
+// DESAPARECIDOS - API Venezuela Te Busca
+// ============================================================
+const VTB_API = 'https://www.venezuelatebusca.com/api/persons';
+const VTB_PHOTO = 'https://venezuelatebusca.com/media/photos/';
+const VTB_PAGE = 'https://www.venezuelatebusca.com/';
+const CORS_PROXY = 'https://corsproxy.io/?';
+const VTB_LIMIT = 30;
+let vtbAllData = [];
+let vtbPage = 1;
+let vtbIds = new Set();
+
+document.getElementById('vtbFilterStatus').addEventListener('change', resetVTB);
+document.getElementById('vtbSearch').addEventListener('keydown', e => {
+  if (e.key === 'Enter') resetVTB();
+});
+document.getElementById('vtbSearchBtn').addEventListener('click', resetVTB);
+
+function resetVTB() {
+  vtbPage = 1; vtbAllData = []; vtbIds = new Set(); cargarVTB();
+}
+
+async function cargarVTB() {
+  const search = document.getElementById('vtbSearch').value.trim();
+  const status = document.getElementById('vtbFilterStatus').value;
+  const container = document.getElementById('vtbResults');
+  const isAppend = vtbPage > 1;
+
+  if (!isAppend) container.innerHTML = '<div class="empty-state"><span class="loading-spinner"></span> Cargando reportes...</div>';
+
+  let url = `${VTB_API}?limit=${VTB_LIMIT}&page=${vtbPage}`;
+  if (status !== 'all') url += `&status=${status}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+
+  async function fetchVTB(targetUrl) {
+    const r = await fetch(targetUrl, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+
+  try {
+    let json;
+    try { json = await fetchVTB(url); }
+    catch (e) {
+      if (e.message === 'Failed to fetch' || e.name === 'TypeError')
+        json = await fetchVTB(CORS_PROXY + encodeURIComponent(url));
+      else throw e;
+    }
+    const rawCount = (json.persons || []).length;
+    const nuevos = (json.persons || []).filter(p => !vtbIds.has(p.id));
+    nuevos.forEach(p => vtbIds.add(p.id));
+    vtbAllData = isAppend ? vtbAllData.concat(nuevos) : nuevos;
+    vtbPage++;
+    window._vtbLoaded = true;
+    const hayMas = rawCount >= VTB_LIMIT;
+
+    const total = vtbAllData.length;
+    document.getElementById('vtbCount').textContent = `${total} reportes`;
+
+    if (!total) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-filter"></i> No hay reportes con ese filtro.</div>';
+      return;
+    }
+
+    const feedHtml = nuevos.map(p => {
+      const name = [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Sin nombre';
+      const isMissing = p.status === 'missing';
+      const badgeText = isMissing ? 'Por localizar' : 'Localizado';
+      const badgeClass = isMissing ? 'feed-badge-desconocido' : 'feed-badge-localizado';
+      const hasPhoto = p.photo_key && !p.photo_key.startsWith('placeholder');
+      const photoUrl = hasPhoto ? `${VTB_PHOTO}${p.photo_key}` : '';
+      const avatarColor = isMissing ? 'cf142b' : '27ae60';
+      const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${avatarColor}&color=fff&size=100&rounded=true&font-size=0.33&bold=true`;
+      const bits = [];
+      if (p.age) bits.push(`<span><strong>Edad:</strong> ${p.age} años</span>`);
+      if (p.gender) bits.push(`<span><strong>Sexo:</strong> ${p.gender === 'male' ? 'Masculino' : 'Femenino'}</span>`);
+      if (p.national_id) bits.push(`<span><strong>C.I.:</strong> ${escHtml(p.national_id)}</span>`);
+      const placeHtml = p.last_seen_location ? `<div class="feed-lugar"><i class="fas fa-map-marker-alt"></i> <strong>Última vez:</strong> ${escHtml(p.last_seen_location)}</div>` : '';
+      const descHtml = p.description ? `<div class="feed-obs">${escHtml(p.description)}</div>` : '';
+      const time = p.created_at ? tiempoRelativo(p.created_at) : '';
+      const reporter = p.reporter_name ? escHtml(p.reporter_name) : '';
+      const shareText = encodeURIComponent(`🔍 ${name} - Venezuela Te Busca`);
+      const waLink = `https://wa.me/?text=${shareText}%0A${VTB_PAGE}`;
+      const imgHtml = hasPhoto
+        ? `<img src="${photoUrl}" alt="${escHtml(name)}" loading="lazy" decoding="async" onerror="this.src='${avatarUrl}'" />`
+        : `<img src="${avatarUrl}" alt="${escHtml(name)}" loading="lazy" />`;
+      return `<div class="feed-item">
+        <div class="feed-avatar" style="flex:0 0 90px;width:90px;height:90px;">${imgHtml}</div>
+        <div class="feed-body">
+          <div class="feed-header">
+            <div class="feed-nombre">${escHtml(name)}</div>
+            <span class="feed-badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <div class="feed-meta">${bits.join('')}</div>
+          ${placeHtml}${descHtml}
+          <div class="feed-footer">
+            <div class="feed-fuente">${reporter ? '<i class="fas fa-user"></i> ' + reporter : ''}${time ? ' · ' + time : ''}</div>
+            <div class="feed-actions">
+              <a class="feed-whatsapp" href="${waLink}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Compartir</a>
+  </div>
+</div>
+
+<!-- ===== MODERAR ===== -->
+<div class="page" id="pag-moderar">
+  <div class="titulo-seccion"><i class="fas fa-check-double"></i> Panel de moderación</div>
+
+  <div id="modStats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:1rem;"></div>
+
+  <div class="search-box" style="margin:.6rem 0;">
+    <input type="text" id="modSearch" placeholder="Buscar centro por nombre..." />
+    <select id="modFilter" style="flex:0 0 140px;padding:.45rem;">
+      <option value="pending">Pendientes</option>
+      <option value="approved">Aprobados</option>
+      <option value="rejected">Rechazados</option>
+      <option value="all">Todos</option>
+    </select>
+  </div>
+
+  <div id="moderarLista" class="centros-list"></div>
+
+  <div id="moderadoresSection" style="margin-top:2rem;padding-top:1.5rem;border-top:2px solid #eee;display:none;">
+    <div class="titulo-seccion" style="font-size:1rem;"><i class="fas fa-user-shield"></i> Gestionar moderadores</div>
+
+    <div style="overflow-x:auto;margin:.6rem 0;">
+      <table style="width:100%;font-size:.78rem;border-collapse:collapse;">
+        <thead>
+          <tr style="background:#f0f0f0;">
+            <th style="padding:.4rem .6rem;text-align:left;">Permiso</th>
+            <th style="padding:.4rem .3rem;text-align:center;color:var(--gold);">Owner</th>
+            <th style="padding:.4rem .3rem;text-align:center;color:#dc3545;">Admin</th>
+            <th style="padding:.4rem .3rem;text-align:center;color:var(--blue);">Manager</th>
+            <th style="padding:.4rem .3rem;text-align:center;color:#6c757d;">Moderator</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:.3rem .6rem;">Aprobar / Rechazar centros</td><td style="text-align:center;">✅</td><td style="text-align:center;">✅</td><td style="text-align:center;">✅</td><td style="text-align:center;">✅</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:.3rem .6rem;">Editar centros</td><td style="text-align:center;">✅</td><td style="text-align:center;">✅</td><td style="text-align:center;">✅</td><td style="text-align:center;">❌</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:.3rem .6rem;">Eliminar centros</td><td style="text-align:center;">✅</td><td style="text-align:center;">✅</td><td style="text-align:center;">❌</td><td style="text-align:center;">❌</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:.3rem .6rem;">Agregar moderadores</td><td style="text-align:center;">✅</td><td style="text-align:center;">✅*</td><td style="text-align:center;">❌</td><td style="text-align:center;">❌</td></tr>
+          <tr><td style="padding:.3rem .6rem;">Eliminar moderadores</td><td style="text-align:center;">✅</td><td style="text-align:center;">✅*</td><td style="text-align:center;">❌</td><td style="text-align:center;">❌</td></tr>
+          <tr><td style="padding:.3rem .6rem;font-size:.72rem;color:#999;" colspan="5">* Admin solo puede gestionar roles inferiores (Manager y Moderator). No puede tocar Owner ni otros Admins.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:.5rem;margin:.6rem 0;flex-wrap:wrap;">
+      <input type="email" id="nuevoModEmail" placeholder="Email del nuevo moderador" style="flex:1;min-width:180px;" />
+      <select id="nuevoModRol" style="flex:0 0 130px;padding:.45rem;">
+        <option value="moderator">Moderador</option>
+        <option value="manager">Manager</option>
+        ${miRol === 'owner' ? '<option value="admin">Admin</option>' : ''}
+      </select>
+      <button class="btn" style="background:var(--blue);white-space:nowrap;" onclick="agregarModerador()"><i class="fas fa-plus"></i> Agregar</button>
+    </div>
+
+    <div id="moderadoresLista"></div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR CENTRO -->
+<div id="modalEditar" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9999;overflow-y:auto;" onclick="if(event.target===this)cerrarModalEditar()">
+  <div style="max-width:600px;margin:2rem auto;background:#fff;border-radius:12px;padding:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h3 style="margin:0;"><i class="fas fa-edit"></i> Editar centro</h3>
+      <button onclick="cerrarModalEditar()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+    </div>
+    <form id="formEditarCentro">
+      <div class="form-row">
+        <div class="form-group"><label>Nombre</label><input type="text" id="e_nombre" required></div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="e_tipo">
+            <option value="acopio">Acopio</option>
+            <option value="refugio">Refugio</option>
+            <option value="hospital">Hospital</option>
+            <option value="voluntariado">Voluntariado</option>
+            <option value="distribucion">Distribución</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Descripción</label><textarea id="e_descripcion" required></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Dirección</label><input type="text" id="e_direccion" required></div>
+        <div class="form-group"><label>Ciudad</label><input type="text" id="e_ciudad" required></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Estado</label>
+          <select id="e_estado">
+            <option value="Amazonas">Amazonas</option><option value="Anzoátegui">Anzoátegui</option>
+            <option value="Apure">Apure</option><option value="Aragua">Aragua</option>
+            <option value="Barinas">Barinas</option><option value="Bolívar">Bolívar</option>
+            <option value="Carabobo">Carabobo</option><option value="Cojedes">Cojedes</option>
+            <option value="Delta Amacuro">Delta Amacuro</option><option value="Distrito Capital">Distrito Capital</option>
+            <option value="Falcón">Falcón</option><option value="Guárico">Guárico</option>
+            <option value="La Guaira">La Guaira</option><option value="Lara">Lara</option>
+            <option value="Mérida">Mérida</option><option value="Miranda">Miranda</option>
+            <option value="Monagas">Monagas</option><option value="Nueva Esparta">Nueva Esparta</option>
+            <option value="Portuguesa">Portuguesa</option><option value="Sucre">Sucre</option>
+            <option value="Táchira">Táchira</option><option value="Trujillo">Trujillo</option>
+            <option value="Yaracuy">Yaracuy</option><option value="Zulia">Zulia</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Teléfono</label><input type="text" id="e_telefono"></div>
+      </div>
+      <div class="form-group"><label>Items necesitados</label><textarea id="e_items" required></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Horarios</label><input type="text" id="e_horarios"></div>
+        <div class="form-group"><label>Instagram</label><input type="text" id="e_instagram"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Latitud</label><input type="text" id="e_lat" required></div>
+        <div class="form-group"><label>Longitud</label><input type="text" id="e_lng" required></div>
+      </div>
+      <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Guardar cambios</button>
+    </form>
+  </div>
+</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    if (isAppend) {
+      container.insertAdjacentHTML('beforeend', feedHtml);
+      if (hayMas) {
+        const btn = container.querySelector('.btn-cargar-mas');
+        if (btn) btn.remove();
+        container.insertAdjacentHTML('beforeend', `<button class="btn-cargar-mas" onclick="cargarVTB()"><i class="fas fa-plus-circle"></i> Cargar más reportes</button>`);
+      } else {
+        const btn = container.querySelector('.btn-cargar-mas');
+        if (btn) btn.remove();
+      }
+    } else {
+      container.innerHTML = feedHtml + (hayMas
+        ? `<button class="btn-cargar-mas" onclick="cargarVTB()"><i class="fas fa-plus-circle"></i> Cargar más reportes</button>`
+        : '');
+    }
+  } catch (e) {
+    if (vtbPage <= 2) container.innerHTML = `
+      <div class="empty-state" style="border-color:#e8c9b6;background:#fcf3eb;color:#8a4a1c;">
+        <i class="fas fa-exclamation-triangle"></i>
+        No se pudieron cargar los reportes.
+        <br><span style="font-size:.82rem;"><a href="${VTB_PAGE}" target="_blank" rel="noopener" style="color:var(--red);">Visitá venezuelatebusca.com directamente</a>.</span>
+        <br><button onclick="resetVTB()" style="margin-top:.8rem;padding:.4rem 1.2rem;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;">Reintentar</button>
+      </div>`;
+  }
+}
+
+// ============================================================
+// DESAPARECIDOS - API Localizados Venezuela
+// ============================================================
+const LOCALIZADOS_API = 'https://localizadosvenezuela.com/api/v1/localizados';
+const LOCALIZADOS_DETAIL = 'https://localizadosvenezuela.com/localizados/';
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('activo'));
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('activo');
+  });
+});
+
+document.getElementById('desaparecidosGo').addEventListener('click', buscarLocalizados);
+document.getElementById('desaparecidosSearch').addEventListener('keydown', e => {
+  if (e.key === 'Enter') buscarLocalizados();
+});
+document.getElementById('filterCondicion').addEventListener('change', renderFeed);
+
+let feedData = [];
+
+async function buscarLocalizados() {
+  const term = document.getElementById('desaparecidosSearch').value.trim();
+  const digits = term.replace(/\D/g, '');
+  if (term.length < 2 && digits.length < 4) {
+    document.getElementById('localizadosResults').innerHTML =
+      '<div class="empty-state"><i class="fas fa-info-circle"></i> Escribí al menos 2 letras o 4 dígitos de cédula.</div>';
+    return;
+  }
+
+  const container = document.getElementById('localizadosResults');
+  container.innerHTML = '<div class="empty-state"><span class="loading-spinner"></span> Buscando en Localizados Venezuela...</div>';
+
+  try {
+    const r = await fetch(`${LOCALIZADOS_API}?q=${encodeURIComponent(term)}&page=1&limit=50`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const json = await r.json();
+    feedData = json.data || [];
+    const meta = json.meta || {};
+
+    document.getElementById('dStatLoc').textContent = meta.total || feedData.length;
+
+    if (!feedData.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-user-slash"></i>
+          No hay coincidencias en Localizados Venezuela para «<strong>${escHtml(term)}</strong>».
+          <br><span style="font-size:.82rem;color:#999;">Probá en Venezuela Te Busca o Desaparecidos Terremoto Venezuela usando los enlaces de arriba.</span>
+        </div>
+      `;
+      document.getElementById('feedFilters').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('feedFilters').style.display = 'flex';
+    renderFeed();
+  } catch (e) {
+    container.innerHTML = `
+      <div class="empty-state" style="border-color:#e8c9b6;background:#fcf3eb;color:#8a4a1c;">
+        <i class="fas fa-exclamation-triangle"></i>
+        No se pudo consultar la API de Localizados Venezuela ahora.
+        <br><span style="font-size:.82rem;">El sitio puede estar saturado. Probá de nuevo o usá los enlaces a las otras plataformas.</span>
+        <br><button onclick="buscarLocalizados()" style="margin-top:.8rem;padding:.4rem 1.2rem;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;">Reintentar</button>
+      </div>`;
+    document.getElementById('feedFilters').style.display = 'none';
+  }
+}
+
+function renderFeed() {
+  const filtro = document.getElementById('filterCondicion').value;
+  const container = document.getElementById('localizadosResults');
+
+  let filtered = feedData;
+  if (filtro !== 'todas') filtered = feedData.filter(p => p.condicion === filtro);
+
+  document.getElementById('feedCount').textContent = `${filtered.length} de ${feedData.length} resultados`;
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-filter"></i> No hay resultados con ese filtro.</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(p => {
+    const cond = p.condicion || 'desconocido';
+    const badgeClass = cond === 'localizado' ? 'feed-badge-localizado'
+      : cond === 'fallecido' ? 'feed-badge-fallecido' : 'feed-badge-desconocido';
+    const badgeText = cond === 'localizado' ? 'Localizado'
+      : cond === 'fallecido' ? 'Fallecido' : 'Sin información';
+
+    const avatarColor = cond === 'localizado' ? '27ae60'
+      : cond === 'fallecido' ? 'cf142b' : '6c757d';
+    const name = p.nombreCompleto || 'Sin nombre';
+    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${avatarColor}&color=fff&size=64&rounded=true&font-size=0.35&bold=true`;
+
+    const bits = [];
+    if (p.edad) bits.push(`<span><strong>Edad:</strong> ${escHtml(p.edad)}</span>`);
+    if (p.cedula) bits.push(`<span><strong>Cédula:</strong> ${escHtml(p.cedula)}</span>`);
+    if (p.telefono) bits.push(`<span><strong>Tel.:</strong> ${escHtml(p.telefono)}</span>`);
+
+    const lugarHtml = p.lugarNombre
+      ? `<div class="feed-lugar"><i class="fas fa-map-marker-alt"></i> ${escHtml(p.lugarNombre)}${p.direccion && p.direccion !== 'Sin información' ? ' — ' + escHtml(p.direccion) : ''}</div>`
+      : '';
+
+    const obsHtml = p.observaciones ? `<div class="feed-obs">${escHtml(p.observaciones)}</div>` : '';
+
+    const fuente = p.fuente?.nombre ? escHtml(p.fuente.nombre) : '';
+    const link = p.slug ? `${LOCALIZADOS_DETAIL}${encodeURIComponent(p.slug)}` : '';
+    const fecha = p.publicadoEn ? tiempoRelativo(p.publicadoEn) : '';
+
+    const shareText = encodeURIComponent(`🧑 ${name} - Buscador de personas Terremoto Venezuela 2026`);
+    const shareUrl = encodeURIComponent(link || window.location.href);
+    const waLink = `https://wa.me/?text=${shareText}%0A${shareUrl}`;
+
+    return `<div class="feed-item">
+      <div class="feed-avatar"><img src="${avatarUrl}" alt="${escHtml(name)}" loading="lazy" /></div>
+      <div class="feed-body">
+        <div class="feed-header">
+          <div class="feed-nombre">${escHtml(name)}</div>
+          <span class="feed-badge ${badgeClass}">${badgeText}</span>
+        </div>
+        <div class="feed-meta">${bits.join('')}</div>
+        ${lugarHtml}${obsHtml}
+        <div class="feed-footer">
+          <div class="feed-fuente">${fuente ? '<i class="fas fa-database"></i> ' + fuente : ''}${fecha ? ' · ' + fecha : ''}</div>
+          <div class="feed-actions">
+            ${link ? `<a class="feed-link" href="${link}" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Ver ficha</a>` : ''}
+            <a class="feed-whatsapp" href="${waLink}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Compartir</a>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function tiempoRelativo(fechaISO) {
+  const diff = Date.now() - new Date(fechaISO).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Ahora';
+  if (mins < 60) return `Hace ${mins} min`;
+  const horas = Math.floor(mins / 60);
+  if (horas < 24) return `Hace ${horas} h`;
+  const dias = Math.floor(horas / 24);
+  return dias < 7 ? `Hace ${dias} día${dias > 1 ? 's' : ''}` : new Date(fechaISO).toLocaleDateString('es-VE', { day:'numeric', month:'short' });
+}
+
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":"&#39;" })[c]);
+}
+
+// ============================================================
+// INICIO
+// ============================================================
+actualizarUI();
+document.getElementById('statCentros').textContent = todosLosCentros.filter(c => c.status === 'approved').length;
+cargarCentros();
+setInterval(fetchSismos, 300000);
+</script>
+</body>
+</html>
