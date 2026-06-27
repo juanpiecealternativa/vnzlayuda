@@ -1090,7 +1090,7 @@ async function actualizarUI() {
     miRol = '';
     if (typeof turnstile !== 'undefined') {
       const el = document.getElementById('turnstileWidget');
-      if (el && !el.querySelector('iframe')) {
+      if (el && !el.shadowRoot) {
         turnstile.render('#turnstileWidget', {
           sitekey: '0x4AAAAAADr9f8FslVdDLFjX',
           callback: onTurnstileToken,
@@ -1109,14 +1109,12 @@ function revisarAuthReg() {
   if (usuario && !miniMapa) initMiniMapa();
   if (usuario && typeof turnstile !== 'undefined') {
     const el = document.getElementById('turnstileRegWidget');
-    if (el && !el.querySelector('iframe')) {
-      try {
-        turnstile.render('#turnstileRegWidget', {
-          sitekey: '0x4AAAAAADr9f8FslVdDLFjX',
-          callback: (token) => { regCaptchaToken = token; },
-          'expired-callback': () => { regCaptchaToken = null; }
-        });
-      } catch (_) {}
+    if (el && !el.shadowRoot) {
+      turnstile.render('#turnstileRegWidget', {
+        sitekey: '0x4AAAAAADr9f8FslVdDLFjX',
+        callback: (token) => { regCaptchaToken = token; },
+        'expired-callback': () => { regCaptchaToken = null; }
+      });
     }
   }
 }
