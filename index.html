@@ -1813,6 +1813,10 @@ const CORS_PROXIES = [
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?',
 ];
+// Cloudflare Worker (opcional, configurable en config.js)
+if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.proxyWorkerUrl) {
+  CORS_PROXIES.unshift(APP_CONFIG.proxyWorkerUrl + '?url=');
+}
 const VTB_LIMIT = 30;
 let vtbAllData = [];
 let vtbPage = 1;

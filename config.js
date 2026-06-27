@@ -13,4 +13,5 @@ const APP_CONFIG = {
   appVersion: '2.0',
   defaultMapCenter: [10.4806, -66.9036], // Caracas
   defaultZoom: 8,
+  proxyWorkerUrl: '', // <-- poné acá tu URL de Cloudflare Worker
 };
