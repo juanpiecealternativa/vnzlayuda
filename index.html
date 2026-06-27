@@ -965,7 +965,10 @@ function toggleMenu(abierto) {
   document.getElementById('sideMenu').classList.toggle('abierto', abierto);
   document.getElementById('menuOverlay').classList.toggle('abierto', abierto);
 }
-document.getElementById('hamburgerBtn').addEventListener('click', () => toggleMenu(true));
+document.getElementById('hamburgerBtn').addEventListener('click', () => {
+  const abierto = document.getElementById('sideMenu').classList.contains('abierto');
+  toggleMenu(!abierto);
+});
 document.getElementById('menuOverlay').addEventListener('click', () => toggleMenu(false));
 document.querySelectorAll('.side-menu .nav-btn').forEach(btn => {
   btn.addEventListener('click', () => toggleMenu(false));
