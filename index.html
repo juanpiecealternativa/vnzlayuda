@@ -350,6 +350,12 @@
       overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,.12);
     }
     .feed-avatar img { width: 100%; height: 100%; display: block; }
+    .feed-item-lg { gap: 1.2rem; padding: 1.25rem; }
+    .feed-avatar-lg {
+      flex: 0 0 110px; width: 110px; height: 110px; border-radius: 16px;
+      overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,.15);
+    }
+    .feed-avatar-lg img { width: 100%; height: 100%; display: block; object-fit: cover; }
     .feed-body { flex: 1; min-width: 0; }
     .feed-header {
       display: flex; justify-content: space-between; align-items: flex-start;
@@ -997,6 +1003,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     if (p === 'registrar') revisarAuthReg();
     if (p === 'mis-centros') revisarAuthMis();
     if (p === 'moderar') { if (esModerador) { cargarPendientes(); cargarModeradores(); } else document.getElementById('moderarLista').innerHTML = '<div style="text-align:center;padding:2rem;color:#999;"><i class="fas fa-lock" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>No tenés permisos de moderación.</div>'; }
+    if (p === 'desaparecidos') buscarLocalizados();
     if (p === 'sismos') renderSismos();
   });
 });
@@ -2151,15 +2158,9 @@ let feedData = [];
 async function buscarLocalizados() {
   const desdeAmbos = document.getElementById('desaparecidosSearch').value.trim() || document.getElementById('localizadosSearch').value.trim();
   const term = desdeAmbos;
-  const digits = term.replace(/\D/g, '');
-  if (term.length < 2 && digits.length < 4) {
-    document.getElementById('localizadosResults').innerHTML =
-      '<div class="empty-state"><i class="fas fa-info-circle"></i> Escribí al menos 2 letras o 4 dígitos de cédula.</div>';
-    return;
-  }
 
   const container = document.getElementById('localizadosResults');
-  container.innerHTML = '<div class="empty-state"><span class="loading-spinner"></span> Buscando en Localizados Venezuela...</div>';
+  container.innerHTML = '<div class="empty-state"><span class="loading-spinner"></span> ' + (term ? 'Buscando' : 'Cargando') + ' en Localizados Venezuela...</div>';
 
   try {
     const r = await fetch(`${LOCALIZADOS_API}?q=${encodeURIComponent(term)}&page=1&limit=50`, {
@@ -2173,13 +2174,9 @@ async function buscarLocalizados() {
     document.getElementById('dStatLoc').textContent = meta.total || feedData.length;
 
     if (!feedData.length) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-user-slash"></i>
-          No hay coincidencias en Localizados Venezuela para «<strong>${escHtml(term)}</strong>».
-          <br><span style="font-size:.82rem;color:#999;">Probá con otro nombre o cédula, o usá los enlaces a las plataformas de arriba.</span>
-        </div>
-      `;
+      container.innerHTML = term
+        ? `<div class="empty-state"><i class="fas fa-user-slash"></i> No hay coincidencias para «<strong>${escHtml(term)}</strong>».<br><span style="font-size:.82rem;color:#999;">Probá con otro nombre o cédula.</span></div>`
+        : `<div class="empty-state"><i class="fas fa-user-slash"></i> No se encontraron personas registradas aún.</div>`;
       document.getElementById('localizadosFilters').style.display = 'none';
       return;
     }
@@ -2222,7 +2219,7 @@ function renderFeed() {
     const avatarColor = cond === 'localizado' ? '27ae60'
       : cond === 'fallecido' ? 'cf142b' : '6c757d';
     const name = p.nombreCompleto || 'Sin nombre';
-    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${avatarColor}&color=fff&size=64&rounded=true&font-size=0.35&bold=true`;
+    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${avatarColor}&color=fff&size=128&rounded=true&font-size=0.33&bold=true`;
 
     const bits = [];
     if (p.edad) bits.push(`<span><strong>Edad:</strong> ${escHtml(p.edad)}</span>`);
@@ -2243,8 +2240,8 @@ function renderFeed() {
     const shareUrl = encodeURIComponent(link || window.location.href);
     const waLink = `https://wa.me/?text=${shareText}%0A${shareUrl}`;
 
-    return `<div class="feed-item">
-      <div class="feed-avatar"><img src="${avatarUrl}" alt="${escHtml(name)}" loading="lazy" /></div>
+    return `<div class="feed-item feed-item-lg">
+      <div class="feed-avatar-lg"><img src="${avatarUrl}" alt="${escHtml(name)}" loading="lazy" /></div>
       <div class="feed-body">
         <div class="feed-header">
           <div class="feed-nombre">${escHtml(name)}</div>
@@ -2287,6 +2284,7 @@ actualizarUI();
 document.getElementById('statCentros').textContent = todosLosCentros.filter(c => c.status === 'approved').length;
 cargarCentros();
 setInterval(fetchSismos, 300000);
+buscarLocalizados();
 fetchMascotas();
 </script>
 </body>
