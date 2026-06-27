@@ -47,10 +47,10 @@ CREATE TABLE public.volunteers (
 ALTER TABLE public.centers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.volunteers ENABLE ROW LEVEL SECURITY;
 
--- CENTROS: todos ven aprobados, cada quien ve sus pendientes/rechazados
+-- CENTROS: todos ven aprobados, cada quien ve sus pendientes/rechazados, moderadores ven todo
 CREATE POLICY "Centros activos visibles pa to el mundo"
   ON public.centers FOR SELECT
-  USING (status = 'approved' OR auth.uid() = user_id);
+  USING (status = 'approved' OR auth.uid() = user_id OR public.is_moderator());
 
 CREATE POLICY "Usuarios registran centros"
   ON public.centers FOR INSERT

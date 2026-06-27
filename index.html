@@ -12,6 +12,7 @@
       --red: #cf142b;
       --blue: #002060;
       --gold: #ffdd00;
+      --green: #28a745;
       --gray: #f4f4f4;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -74,28 +75,28 @@
     /* Hamburger menu */
     .hamburger-btn {
       position: fixed;
-      top: .6rem;
-      left: .6rem;
+      top: .7rem;
+      left: .7rem;
       z-index: 2000;
-      width: 42px;
-      height: 42px;
+      width: 48px;
+      height: 48px;
       border: none;
       background: var(--blue);
       color: #fff;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 5px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+      box-shadow: 0 3px 10px rgba(0,0,0,.25);
       transition: background .2s;
     }
     .hamburger-btn:hover { background: #001840; }
     .hamburger-btn span {
       display: block;
-      width: 22px;
+      width: 24px;
       height: 3px;
       background: #fff;
       border-radius: 2px;
@@ -144,7 +145,7 @@
     .side-menu .nav-btn i { font-size: 1.1rem; width: 1.4rem; text-align: center; }
     .side-menu .nav-btn.activo { border-bottom-color: var(--red); }
 
-    .page-wrap { position: relative; }
+    .page-wrap { position: relative; min-height: calc(100vh - 140px); }
     .page { padding: 1rem; max-width: 1200px; margin: 0 auto; position: absolute; width: 100%; left: 0; right: 0; opacity: 0; pointer-events: none; }
     .page.activo { position: relative; opacity: 1; pointer-events: auto; }
 
@@ -785,8 +786,8 @@
       Personas ya localizadas en hospitales, refugios y recintos. Datos desde <a href="https://localizadosvenezuela.com" target="_blank" rel="noopener" style="color:var(--red);">localizadosvenezuela.com</a>.
     </p>
     <div class="search-box" style="margin:.5rem 0;">
-      <input type="text" id="desaparecidosSearch" placeholder="Buscar por nombre, apellido o cédula..." />
-      <button id="desaparecidosGo"><i class="fas fa-search"></i> Buscar</button>
+      <input type="text" id="localizadosSearch" placeholder="Buscar por nombre, apellido o cédula..." />
+      <button id="localizadosGo"><i class="fas fa-search"></i> Buscar</button>
     </div>
     <div class="feed-filters" id="localizadosFilters" style="display:none;">
       <select id="filterCondicion">
@@ -901,9 +902,6 @@
         <i class="fas fa-sign-out-alt"></i> Cerrar sesión
       </button>
   </div>
-</div>
-</div>
-
 </div>
 
 <script src="config.js"></script>
@@ -1357,6 +1355,9 @@ function renderModerarStats(data, estado) {
   if (estado === 'all') {
     const st = { pending:0, approved:0, rejected:0 };
     data.forEach(c => { if (st[c.status] !== undefined) st[c.status]++; });
+    todosLosCentros.filter(c => c.id && c.id.toString().startsWith('estatico')).forEach(c => {
+      if (st[c.status] !== undefined) st[c.status]++;
+    });
     container.innerHTML = `
       <div class="stat-card" style="background:#fff3cd;"><div class="num">${st.pending}</div><div class="label">Pendientes</div></div>
       <div class="stat-card" style="background:#d4edda;"><div class="num">${st.approved}</div><div class="label">Aprobados</div></div>
@@ -1371,13 +1372,14 @@ function renderModerarStats(data, estado) {
       <div class="stat-card" style="background:#f8d7da;"><div class="num" id="modStatRej">?</div><div class="label">Rechazados</div></div>
     `;
     supabase.from('centers').select('status').then(({ data: dd }) => {
-      if (dd) {
-        const st = { pending:0, approved:0, rejected:0 };
-        dd.forEach(c => { if (st[c.status] !== undefined) st[c.status]++; });
-        document.getElementById('modStatPend').textContent = st.pending;
-        document.getElementById('modStatApr').textContent = st.approved;
-        document.getElementById('modStatRej').textContent = st.rejected;
-      }
+      const st = { pending:0, approved:0, rejected:0 };
+      if (dd) dd.forEach(c => { if (st[c.status] !== undefined) st[c.status]++; });
+      todosLosCentros.filter(c => c.id && c.id.toString().startsWith('estatico')).forEach(c => {
+        if (st[c.status] !== undefined) st[c.status]++;
+      });
+      document.getElementById('modStatPend').textContent = st.pending;
+      document.getElementById('modStatApr').textContent = st.approved;
+      document.getElementById('modStatRej').textContent = st.rejected;
     });
   }
 }
@@ -1422,9 +1424,6 @@ function renderModerarLista(div, data) {
     </div>`;
   }).join('');
 }
-
-document.getElementById('modSearch')?.addEventListener('input', cargarPendientes);
-document.getElementById('modFilter')?.addEventListener('change', cargarPendientes);
 
 async function modAprobar(id) {
   try {
@@ -1859,8 +1858,10 @@ async function cargarVTB() {
             <div class="feed-fuente">${reporter ? '<i class="fas fa-user"></i> ' + reporter : ''}${time ? ' · ' + time : ''}</div>
             <div class="feed-actions">
               <a class="feed-whatsapp" href="${waLink}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Compartir</a>
-  </div>
-</div>`;
+            </div>
+          </div>
+        </div>
+      </div>`;
     }).join('');
 
     if (isAppend) {
@@ -2003,6 +2004,9 @@ async function cargarVTB() {
     </form>
   </div>
 </div>
+
+</div><!-- /page-wrap -->
+
 <script>
 document.getElementById('formEditarCentro').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -2031,6 +2035,9 @@ document.getElementById('formEditarCentro').addEventListener('submit', async (e)
   } catch (e) { alert('Error al guardar: ' + e.message); }
 });
 
+document.getElementById('modSearch')?.addEventListener('input', cargarPendientes);
+document.getElementById('modFilter')?.addEventListener('change', cargarPendientes);
+
 // ============================================================
 // DESAPARECIDOS - API Localizados Venezuela
 // ============================================================
@@ -2050,12 +2057,17 @@ document.getElementById('desaparecidosGo').addEventListener('click', buscarLocal
 document.getElementById('desaparecidosSearch').addEventListener('keydown', e => {
   if (e.key === 'Enter') buscarLocalizados();
 });
+document.getElementById('localizadosGo').addEventListener('click', buscarLocalizados);
+document.getElementById('localizadosSearch').addEventListener('keydown', e => {
+  if (e.key === 'Enter') buscarLocalizados();
+});
 document.getElementById('filterCondicion').addEventListener('change', renderFeed);
 
 let feedData = [];
 
 async function buscarLocalizados() {
-  const term = document.getElementById('desaparecidosSearch').value.trim();
+  const desdeAmbos = document.getElementById('desaparecidosSearch').value.trim() || document.getElementById('localizadosSearch').value.trim();
+  const term = desdeAmbos;
   const digits = term.replace(/\D/g, '');
   if (term.length < 2 && digits.length < 4) {
     document.getElementById('localizadosResults').innerHTML =
@@ -2085,11 +2097,11 @@ async function buscarLocalizados() {
           <br><span style="font-size:.82rem;color:#999;">Probá en Venezuela Te Busca o Desaparecidos Terremoto Venezuela usando los enlaces de arriba.</span>
         </div>
       `;
-      document.getElementById('feedFilters').style.display = 'none';
+      document.getElementById('localizadosFilters').style.display = 'none';
       return;
     }
 
-    document.getElementById('feedFilters').style.display = 'flex';
+    document.getElementById('localizadosFilters').style.display = 'flex';
     renderFeed();
   } catch (e) {
     container.innerHTML = `
@@ -2099,7 +2111,7 @@ async function buscarLocalizados() {
         <br><span style="font-size:.82rem;">El sitio puede estar saturado. Probá de nuevo o usá los enlaces a las otras plataformas.</span>
         <br><button onclick="buscarLocalizados()" style="margin-top:.8rem;padding:.4rem 1.2rem;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;">Reintentar</button>
       </div>`;
-    document.getElementById('feedFilters').style.display = 'none';
+    document.getElementById('localizadosFilters').style.display = 'none';
   }
 }
 
