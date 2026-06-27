@@ -24,7 +24,7 @@
     .header {
       background: linear-gradient(135deg, var(--blue), var(--red), var(--blue));
       color: #fff;
-      padding: 1.5rem 1rem;
+      padding: 1.5rem 1rem 1.5rem 3.8rem;
       text-align: center;
     }
     .header h1 { font-size: 2rem; }
@@ -70,6 +70,79 @@
     .nav-btn i { font-size: 1rem; }
     .nav-btn:hover { color: var(--red); background: #fff5f5; }
     .nav-btn.activo { color: var(--red); border-bottom-color: var(--red); font-weight: 600; }
+
+    /* Hamburger menu */
+    .hamburger-btn {
+      position: fixed;
+      top: .6rem;
+      left: .6rem;
+      z-index: 2000;
+      width: 42px;
+      height: 42px;
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+      transition: background .2s;
+    }
+    .hamburger-btn:hover { background: #001840; }
+    .hamburger-btn span {
+      display: block;
+      width: 22px;
+      height: 3px;
+      background: #fff;
+      border-radius: 2px;
+      transition: transform .3s, opacity .3s;
+    }
+    .hamburger-btn.abierto span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
+    .hamburger-btn.abierto span:nth-child(2) { opacity: 0; }
+    .hamburger-btn.abierto span:nth-child(3) { transform: rotate(-45deg) translate(5px, -6px); }
+
+    .menu-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,.4);
+      z-index: 1500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+    .menu-overlay.abierto { opacity: 1; pointer-events: auto; }
+
+    .side-menu {
+      position: fixed;
+      top: 0; left: 0;
+      width: 280px;
+      height: 100%;
+      background: #fff;
+      z-index: 1600;
+      transform: translateX(-100%);
+      transition: transform .3s;
+      overflow-y: auto;
+      box-shadow: 2px 0 12px rgba(0,0,0,.15);
+      padding-top: 4rem;
+    }
+    .side-menu.abierto { transform: translateX(0); }
+    .side-menu .nav-btn {
+      flex: none;
+      width: 100%;
+      padding: .9rem 1.2rem;
+      font-size: .9rem;
+      flex-direction: row;
+      justify-content: flex-start;
+      gap: .8rem;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .side-menu .nav-btn i { font-size: 1.1rem; width: 1.4rem; text-align: center; }
+    .side-menu .nav-btn.activo { border-bottom-color: var(--red); }
 
     .page-wrap { position: relative; }
     .page { padding: 1rem; max-width: 1200px; margin: 0 auto; position: absolute; width: 100%; left: 0; right: 0; opacity: 0; pointer-events: none; }
@@ -420,7 +493,11 @@
   <div class="badge-emergencia"><i class="fas fa-exclamation-triangle"></i> EMERGENCIA ACTIVA</div>
 </header>
 
-<nav class="nav-bar" id="navBar">
+<button class="hamburger-btn" id="hamburgerBtn" aria-label="Menú">
+  <span></span><span></span><span></span>
+</button>
+<div class="menu-overlay" id="menuOverlay"></div>
+<div class="side-menu" id="sideMenu">
   <button class="nav-btn activo" data-pagina="inicio"><i class="fas fa-home"></i> Inicio</button>
   <button class="nav-btn" data-pagina="mapa"><i class="fas fa-map-marked-alt"></i> Mapa</button>
   <button class="nav-btn" data-pagina="registrar"><i class="fas fa-plus-circle"></i> Registrar</button>
@@ -430,7 +507,7 @@
   <button class="nav-btn" data-pagina="sismos"><i class="fas fa-bolt"></i> Sismos</button>
   <button class="nav-btn" data-pagina="directorio"><i class="fas fa-hand-holding-heart"></i> Directorio</button>
   <button class="nav-btn" data-pagina="cuenta" id="navCuenta"><i class="fas fa-user"></i> Cuenta</button>
-</nav>
+</div>
 
 <div class="page-wrap">
 
@@ -879,6 +956,20 @@ let todosLosCentros = [
   { id:'estatico-18', name:'Hospital Pérez Carreño', description:'Recibe pacientes de Petare y zonas aledañas. Necesitan insumos y personal voluntario.', type:'hospital', address:'Av. San Martín, Oeste de Caracas', city:'Caracas', state:'Distrito Capital', lat:10.4967, lng:-66.9300, items_needed:'Insumos médicos, medicamentos, donación de sangre', schedule:'24 horas', status:'approved', verified:true, phone:'' },
 ];
 let modoLogin = true;
+
+// ============================================================
+// HAMBURGUESA MENÚ
+// ============================================================
+function toggleMenu(abierto) {
+  document.getElementById('hamburgerBtn').classList.toggle('abierto', abierto);
+  document.getElementById('sideMenu').classList.toggle('abierto', abierto);
+  document.getElementById('menuOverlay').classList.toggle('abierto', abierto);
+}
+document.getElementById('hamburgerBtn').addEventListener('click', () => toggleMenu(true));
+document.getElementById('menuOverlay').addEventListener('click', () => toggleMenu(false));
+document.querySelectorAll('.side-menu .nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => toggleMenu(false));
+});
 
 // ============================================================
 // NAVEGACIÓN
