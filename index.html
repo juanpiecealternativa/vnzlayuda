@@ -750,7 +750,7 @@
     <div class="stat-card"><i class="fas fa-users"></i><div class="num" id="dStatVTB">31.267</div><div class="label">Venezuela Te Busca</div></div>
     <div class="stat-card"><i class="fas fa-users"></i><div class="num" id="dStatDTV">40.000+</div><div class="label">Desap. Terremoto Vzla</div></div>
     <div class="stat-card"><i class="fas fa-user-check"></i><div class="num" id="dStatLoc">—</div><div class="label">Localizados Venezuela</div></div>
-    <div class="stat-card"><i class="fas fa-paw"></i><div class="num" id="dStatPets">—</div><div class="label">Patitas a Salvo</div></div>
+    <div class="stat-card"><i class="fas fa-paw"></i><div class="num" id="dStatHuellaTop">—</div><div class="label">HuellaScan</div></div>
   </div>
 
   <div class="search-box">
@@ -832,14 +832,42 @@
     <div class="platform-grid">
       <div class="platform-card">
         <h3><i class="fas fa-paw" style="color:#e67e22;"></i> Patitas a Salvo</h3>
-        <div class="stat-num">—</div>
-        <p>Plataforma de Vanessa Odreman Santander para reportar mascotas perdidas y encontradas en Venezuela.</p>
+        <div class="stat-num" id="dStatPetsCount">—</div>
+        <p>Plataforma de Vanessa Odreman para reportar mascotas perdidas y encontradas en Venezuela.</p>
         <a class="btn" href="https://migenteve.com/" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Ir al sitio</a>
       </div>
+      <div class="platform-card">
+        <h3><i class="fas fa-qrcode" style="color:#318DB5;"></i> HuellaScan</h3>
+        <div class="stat-num" id="dStatHuella">—</div>
+        <p>Galería de emergencia con mascotas perdidas y encontradas tras el sismo. Datos extraídos en vivo.</p>
+        <a class="btn" href="https://www.huellascan.com/terremoto" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Ir al sitio</a>
+      </div>
     </div>
-    <div class="empty-state">
-      <i class="fas fa-paw"></i>
-      <p>Los datos de mascotas se consultan directamente en <a href="https://migenteve.com/" target="_blank" rel="noopener" style="color:var(--red);">Patitas a Salvo</a>. No tenemos una API pública disponible todavía.</p>
+
+    <div class="titulo-seccion" style="margin-top:0;"><i class="fas fa-paw"></i> Mascotas perdidas y encontradas — HuellaScan</div>
+    <p style="font-size:.82rem;color:#666;margin-bottom:.6rem;">
+      Datos extraídos de <a href="https://www.huellascan.com/terremoto" target="_blank" rel="noopener" style="color:var(--red);">HuellaScan</a> en tiempo real. Mostrando las más recientes.
+    </p>
+
+    <div class="search-box" style="margin:.5rem 0;" id="mascotasFilters">
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;width:100%;">
+        <select id="mascotasStatusFilter" style="flex:0 0 140px;padding:.45rem;">
+          <option value="all">Todos</option>
+          <option value="lost">Perdidos</option>
+          <option value="found">Encontrados</option>
+        </select>
+        <select id="mascotasSpeciesFilter" style="flex:0 0 130px;padding:.45rem;">
+          <option value="all">Todas las especies</option>
+          <option value="dog">Perros</option>
+          <option value="cat">Gatos</option>
+          <option value="other">Otros</option>
+        </select>
+        <span style="font-size:.82rem;color:#999;align-self:center;" id="mascotasCount"></span>
+      </div>
+    </div>
+
+    <div id="mascotasResults">
+      <div class="empty-state"><span class="loading-spinner"></span> Cargando mascotas de HuellaScan...</div>
     </div>
   </div>
 </div>
@@ -1904,6 +1932,168 @@ async function cargarVTB() {
       </div>`;
   }
 }
+
+// ============================================================
+// MASCOTAS - HuellaScan scrape
+// ============================================================
+const HUELLASCAN_PAGE = 'https://www.huellascan.com/terremoto/ver-todos';
+let mascotasAllData = [];
+
+async function fetchMascotas() {
+  const container = document.getElementById('mascotasResults');
+  const statusFilter = document.getElementById('mascotasStatusFilter').value;
+  const speciesFilter = document.getElementById('mascotasSpeciesFilter').value;
+
+  if (!mascotasAllData.length) {
+    container.innerHTML = '<div class="empty-state"><span class="loading-spinner"></span> Cargando mascotas de HuellaScan...</div>';
+  }
+
+  async function fetchHtml(url) {
+    const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  }
+
+  async function tryProxies(target) {
+    const proxies = [
+      () => fetchHtml('https://corsproxy.io/?' + encodeURIComponent(target)),
+      () => fetchHtml('https://api.allorigins.win/raw?url=' + encodeURIComponent(target)),
+    ];
+    const errors = [];
+    for (const proxy of proxies) {
+      try { return await proxy(); }
+      catch (e) { errors.push(e.message); }
+    }
+    throw new Error('Todos los proxies fallaron: ' + errors.join('; '));
+  }
+
+  try {
+    let html;
+    try { html = await fetchHtml(HUELLASCAN_PAGE); }
+    catch { html = await tryProxies(HUELLASCAN_PAGE); }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const cards = doc.querySelectorAll('[data-report-id]');
+
+    if (!cards.length) throw new Error('No se encontraron tarjetas en la página');
+
+    mascotasAllData = [];
+
+    cards.forEach(card => {
+      const id = card.getAttribute('data-report-id') || '';
+      const htmlText = card.innerHTML;
+
+      // Status
+      const isFound = htmlText.includes('🟢') || htmlText.includes('Encontrado') || htmlText.includes('encontrado');
+      const status = isFound ? 'found' : 'lost';
+
+      // Name
+      const nameEl = card.querySelector('h3');
+      const name = nameEl ? nameEl.textContent.replace(/[🐶🐱🐾]/g,'').trim() : 'Sin nombre';
+
+      // Time
+      const timeEl = card.querySelector('[class*="text-slate-400"], .text-xs');
+      const time = timeEl ? timeEl.textContent.trim() : '';
+
+      // Location
+      const locSpan = card.querySelector('.bg-slate-50 span, [class*="bg-slate-50"] span');
+      let location = '';
+      if (locSpan) {
+        location = locSpan.textContent.trim();
+      } else {
+        const locDiv = card.querySelector('[class*="bg-slate-50"]');
+        if (locDiv) location = locDiv.textContent.replace(/.*📍\s*Ubicación:\s*/,'').trim();
+      }
+
+      // Phone
+      const telLink = card.querySelector('a[href^="tel:"]');
+      const phone = telLink ? telLink.getAttribute('href').replace('tel:','') : '';
+
+      // WhatsApp
+      const waLink = card.querySelector('a[href^="https://wa.me/"]');
+      const wa = waLink ? waLink.getAttribute('href') : '';
+
+      // Image
+      const img = card.querySelector('img');
+      const image = img ? img.getAttribute('src') : '';
+
+      // Species
+      let species = 'other';
+      const lower = htmlText.toLowerCase();
+      if (lower.includes('perro') || lower.includes('🐶') || lower.includes('dog')) species = 'dog';
+      else if (lower.includes('gato') || lower.includes('🐱') || lower.includes('cat')) species = 'cat';
+
+      mascotasAllData.push({ id, name, status, time, location, phone, wa, image, species });
+    });
+
+    renderMascotas(statusFilter, speciesFilter);
+
+  } catch (e) {
+    if (!mascotasAllData.length) {
+      container.innerHTML = `
+        <div class="empty-state" style="border-color:#e8c9b6;background:#fcf3eb;color:#8a4a1c;">
+          <i class="fas fa-paw"></i>
+          No se pudieron cargar los datos de HuellaScan.
+          <br><span style="font-size:.82rem;"><a href="https://www.huellascan.com/terremoto" target="_blank" rel="noopener" style="color:var(--red);">Visitá HuellaScan directamente</a> para ver todas las mascotas reportadas.</span>
+          <br><button onclick="fetchMascotas()" style="margin-top:.8rem;padding:.4rem 1.2rem;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;">Reintentar</button>
+        </div>`;
+    }
+  }
+}
+
+function renderMascotas(statusFilter, speciesFilter) {
+  const container = document.getElementById('mascotasResults');
+
+  let filtered = mascotasAllData;
+  if (statusFilter === 'lost') filtered = filtered.filter(p => p.status === 'lost');
+  else if (statusFilter === 'found') filtered = filtered.filter(p => p.status === 'found');
+  if (speciesFilter === 'dog') filtered = filtered.filter(p => p.species === 'dog');
+  else if (speciesFilter === 'cat') filtered = filtered.filter(p => p.species === 'cat');
+  else if (speciesFilter === 'other') filtered = filtered.filter(p => p.species === 'other');
+
+  document.getElementById('dStatHuella').textContent = mascotasAllData.length;
+  document.getElementById('dStatHuellaTop').textContent = mascotasAllData.length;
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-paw"></i> No hay mascotas con ese filtro.</div>';
+    document.getElementById('mascotasCount').textContent = '0 mascotas';
+    return;
+  }
+
+  document.getElementById('mascotasCount').textContent = `${filtered.length} de ${mascotasAllData.length} mascotas`;
+
+  container.innerHTML = filtered.map(p => {
+    const badgeClass = p.status === 'lost' ? 'feed-badge-desconocido' : 'feed-badge-localizado';
+    const badgeText = p.status === 'lost' ? '🔴 Perdido' : '🟢 Encontrado';
+    const shareText = encodeURIComponent(`🐾 ${p.name} - Mascota ${p.status === 'lost' ? 'perdida' : 'encontrada'} Terremoto Venezuela`);
+    const shareUrl = encodeURIComponent('https://www.huellascan.com/terremoto');
+    const waLink = p.wa || `https://wa.me/?text=${shareText}%0A${shareUrl}`;
+
+    const imgHtml = p.image
+      ? `<img src="${p.image}" alt="${escHtml(p.name)}" loading="lazy" decoding="async" onerror="this.style.display='none'" />`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#eee;font-size:2rem;">🐾</div>`;
+
+    return `<div class="feed-item">
+      <div class="feed-avatar" style="flex:0 0 90px;width:90px;height:90px;border-radius:12px;overflow:hidden;">${imgHtml}</div>
+      <div class="feed-body">
+        <div class="feed-header">
+          <div class="feed-nombre">${escHtml(p.name)}</div>
+          <span class="feed-badge ${badgeClass}">${badgeText}</span>
+        </div>
+        ${p.location ? `<div class="feed-lugar"><i class="fas fa-map-marker-alt"></i> ${escHtml(p.location)}</div>` : ''}
+        ${p.time ? `<div style="font-size:.78rem;color:#999;margin-top:.15rem;">${escHtml(p.time)}</div>` : ''}
+        <div class="feed-footer">
+          <div class="feed-fuente">#${escHtml(p.id)} · <a href="https://www.huellascan.com/terremoto" target="_blank" rel="noopener" style="color:var(--red);">HuellaScan</a></div>
+          <div class="feed-actions">
+            ${p.phone ? `<a class="feed-link" href="tel:${escHtml(p.phone)}"><i class="fas fa-phone"></i></a>` : ''}
+            <a class="feed-whatsapp" href="${escHtml(waLink)}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Contactar</a>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
 </script>
 
 <div class="page" id="pag-moderar">
@@ -2078,6 +2268,20 @@ document.getElementById('localizadosSearch').addEventListener('keydown', e => {
 });
 document.getElementById('filterCondicion').addEventListener('change', renderFeed);
 
+// Mascotas filters
+document.getElementById('mascotasStatusFilter').addEventListener('change', () => {
+  renderMascotas(
+    document.getElementById('mascotasStatusFilter').value,
+    document.getElementById('mascotasSpeciesFilter').value
+  );
+});
+document.getElementById('mascotasSpeciesFilter').addEventListener('change', () => {
+  renderMascotas(
+    document.getElementById('mascotasStatusFilter').value,
+    document.getElementById('mascotasSpeciesFilter').value
+  );
+});
+
 let feedData = [];
 
 async function buscarLocalizados() {
@@ -2219,6 +2423,7 @@ actualizarUI();
 document.getElementById('statCentros').textContent = todosLosCentros.filter(c => c.status === 'approved').length;
 cargarCentros();
 setInterval(fetchSismos, 300000);
+fetchMascotas();
 </script>
 </body>
 </html>
