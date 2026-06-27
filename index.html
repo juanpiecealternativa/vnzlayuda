@@ -920,6 +920,8 @@ const supabase = window.supabase.createClient(
 
 let captchaToken = null;
 let regCaptchaToken = null;
+let turnstileAuthRendered = false;
+let turnstileRegRendered = false;
 
 function onTurnstileToken(token) { captchaToken = token; }
 function onTurnstileExpired() { captchaToken = null; }
@@ -1090,12 +1092,13 @@ async function actualizarUI() {
     miRol = '';
     if (typeof turnstile !== 'undefined') {
       const el = document.getElementById('turnstileWidget');
-      if (el && !el.shadowRoot) {
+      if (el && !turnstileAuthRendered) {
         turnstile.render('#turnstileWidget', {
           sitekey: '0x4AAAAAADr9f8FslVdDLFjX',
           callback: onTurnstileToken,
           'expired-callback': onTurnstileExpired
         });
+        turnstileAuthRendered = true;
       }
     }
   }
@@ -1108,13 +1111,13 @@ function revisarAuthReg() {
   document.getElementById('regForm').style.display = usuario ? 'block' : 'none';
   if (usuario && !miniMapa) initMiniMapa();
   if (usuario && typeof turnstile !== 'undefined') {
-    const el = document.getElementById('turnstileRegWidget');
-    if (el && !el.shadowRoot) {
+    if (!turnstileRegRendered) {
       turnstile.render('#turnstileRegWidget', {
         sitekey: '0x4AAAAAADr9f8FslVdDLFjX',
         callback: (token) => { regCaptchaToken = token; },
         'expired-callback': () => { regCaptchaToken = null; }
       });
+      turnstileRegRendered = true;
     }
   }
 }
